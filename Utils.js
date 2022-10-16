@@ -1,10 +1,10 @@
-const Card = require('./Card'); 
+const Card = require('./Card');
 const { SUITS, VALUES } = require('./constants');
 
 const predecessor = (value) => {
     const index = VALUES.indexOf(value);
     if (index === 0) {
-        return null; 
+        return VALUES[VALUES.length - 1];
     }
     return VALUES[index - 1];
 }
@@ -12,7 +12,7 @@ const predecessor = (value) => {
 const successor = (value) => {
     const index = VALUES.indexOf(value);
     if (index === VALUES.length - 1) {
-        return null;
+        return VALUES[0];
     }
     return VALUES[index + 1];
 }
@@ -22,12 +22,12 @@ const successor = (value) => {
 const isValidSequence = (cards) => {
     // Check length is greater than or equal to four
     if (cards.length < 4)
-        return false; 
-    
+        return false;
+
     // Look for first card that is not a joker
-    let nonJokerIndex = 0; 
-    while(cards[nonJokerIndex].value === 'Joker') {
-        nonJokerIndex += 1; 
+    let nonJokerIndex = 0;
+    while (cards[nonJokerIndex].value === 'Joker') {
+        nonJokerIndex += 1;
     }
 
     // Check that all cards are same suit
@@ -38,17 +38,38 @@ const isValidSequence = (cards) => {
         }
     }
 
+    // Check that no Ace is in the middle
+    for (let i = 0; i < cards.length; i++) {
+        if (cards[i].value === 'Ace' && i !== 0 && i !== cards.length - 1) {
+            return false;
+        }
+    }
+
+    // Check that at least two cards aren't jokers
+    let nonJokerCount = 0;
+    for (let i = 0; i < cards.length; i++) {
+        if (cards[i].value !== 'Joker') {
+            nonJokerCount += 1;
+        }
+    }
+    if (nonJokerCount < 2) {
+        return false;
+    }
+
     // Check that cards are in sequence forward and backwards
     let value = cards[nonJokerIndex].value;
     let index = nonJokerIndex
 
     // Check forward. Calculate expected next vs current expected and compare
-    current_expected = cards[nonJokerIndex].value; 
+    current_expected = cards[nonJokerIndex].value;
     while (index < cards.length) {
+        if (current_expected === 'Ace' && (index > 0 && index < cards.length - 1)) {
+            return false;
+        }
         if (cards[index].value === 'Joker') {
-            index += 1; 
+            index += 1;
             current_expected = successor(current_expected);
-            continue; 
+            continue;
         }
         if (cards[index].value !== current_expected) {
             return false;
@@ -60,24 +81,53 @@ const isValidSequence = (cards) => {
     current_expected = cards[nonJokerIndex].value;
     index = nonJokerIndex;
     while (index >= 0) {
+        if (current_expected === 'Ace' && (index > 0 && index < cards.length - 1)) {
+            return false;
+        }
         if (cards[index].value === 'Joker') {
-            index -= 1; 
+            index -= 1;
             current_expected = successor(current_expected);
-            continue; 
+            continue;
         }
         if (cards[index].value !== current_expected) {
             return false;
         }
+
         current_expected = predecessor(current_expected);
-        index -= 1; 
+        index -= 1;
     }
     return true;
 }
 
-const isValidStraight = (cards) => {
-    return false; 
+const isValidDupes = (cards) => {
+    if(cards.length < 3) {
+        return false;
+    }
+    // at least 2 non jokers
+    let nonJokerCount = 0;
+    for (let i = 0; i < cards.length; i++) {
+        if (cards[i].value !== 'Joker') {
+            nonJokerCount += 1;
+        }
+    }
+    if (nonJokerCount < 2) {
+        return false;
+    }
+
+    let setOfValues = new Set();
+    for (let i = 0; i < cards.length; i++) {
+        if (cards[i].value === 'Joker') {
+            continue;
+        }
+        setOfValues.add(cards[i].value);
+        if (setOfValues.size > 1) {
+            return false;
+        }
+    }
+    return true; 
+
 }
 
 // Four (straight flush length four)
 
-module.exports = {isValidSequence, isValidStraight}
+module.exports = { isValidSequence, isValidDupes }
