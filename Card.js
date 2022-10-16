@@ -1,9 +1,13 @@
+const {SUIT_EMOJI, VALUE_EMOJI} = require('./Constants'); 
+
 class Card{
     constructor(suit, value){
-        if (!suit) this.suit = 'Joker';
-        if (!value) this.value = 'Joker';
-        this.suit = suit;
-        this.value = value;
+        this.suit = suit || 'Joker';
+        this.value = value || 'Joker'; 
+    }
+
+    toString = () => {
+        return `[${VALUE_EMOJI.get(this.value)}${SUIT_EMOJI.get(this.suit)}]`;
     }
 }
 

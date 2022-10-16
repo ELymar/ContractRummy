@@ -12,3 +12,4 @@ test('new deck with 0 jokers has 52 cards', () => {
     const deck = new Deck(0);
     expect(deck.cards.length).toBe(52);
 });
+
