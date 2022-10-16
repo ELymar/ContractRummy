@@ -41,7 +41,6 @@ test('fromString for all 52 cards', () => {
             count += 1;
             let emojiString = `[${Constants.VALUE_TO_EMOJI_MAP.get(value)}${Constants.SUIT_TO_EMOJI_MAP.get(suit)}]`
             const card = Card.fromString(emojiString);
-            console.log(emojiString);
             expect(card.suit).toBe(suit);
             expect(card.value).toBe(value);
         }

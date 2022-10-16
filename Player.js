@@ -1,20 +1,16 @@
+const Hand = require('./Hand');
+
 class Player {
-  constructor(name) {
-    this.name = name;
-    this.hand = [];
-  }
+    constructor(name) {
+        this.name = name;
+        this.hand = new Hand();
+    }
 
     draw = (deck, nCards) => {
-        this.hand = this.hand.concat(deck.draw(nCards));
+        this.hand.addCards(deck.draw(nCards));
     }
 
-    swap = (first, second) => {
-        [this.hand[first], this.hand[second]] = [this.hand[second], this.hand[first]];
-    }
-
-    handToString = () => { 
-        return this.hand.map(card => card.toString()).join('');
-    }
+    toString = () => { return `${this.name}: ${this.hand.toString()}`; }
 }
 
 module.exports = Player;
