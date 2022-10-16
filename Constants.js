@@ -22,14 +22,14 @@ const VALUES = [
     'Two'
 ]
 
-const SUIT_EMOJI = new Map([
+const SUIT_TO_EMOJI_MAP = new Map([
     ['Hearts', '♥'],
     ['Spades', '♠'],
     ['Clubs', '♣'],
     ['Diamonds', '♦'],
     ['Joker', '🃏']  
 ]);
-const VALUE_EMOJI = new Map([
+const VALUE_TO_EMOJI_MAP = new Map([
     ['Ace', 'A'],
     ['King', 'K'],
     ['Queen', 'Q'],
@@ -46,4 +46,36 @@ const VALUE_EMOJI = new Map([
     ['Joker', '']
 ]);
 
-module.exports = { SUITS, VALUES, SUIT_EMOJI, VALUE_EMOJI }; 
+const EMOJI_TO_SUIT_MAP = new Map([
+    ['♥', 'Hearts'],
+    ['♠', 'Spades'],
+    ['♣', 'Clubs'],
+    ['♦', 'Diamonds'],
+    ['🃏', 'Joker']
+]);
+
+const EMOJI_TO_VALUE_MAP = new Map([
+    ['A', 'Ace'],
+    ['K', 'King'],
+    ['Q', 'Queen'],
+    ['J', 'Jack'],
+    ['10', 'Ten'],
+    ['9', 'Nine'],
+    ['8', 'Eight'],
+    ['7', 'Seven'],
+    ['6', 'Six'],
+    ['5', 'Five'],
+    ['4', 'Four'],
+    ['3', 'Three'],
+    ['2', 'Two'],
+    ['', 'Joker']
+]);
+
+module.exports = {
+    SUITS, 
+    VALUES, 
+    SUIT_TO_EMOJI_MAP,
+    VALUE_TO_EMOJI_MAP, 
+    EMOJI_TO_SUIT_MAP,
+    EMOJI_TO_VALUE_MAP
+}; 
