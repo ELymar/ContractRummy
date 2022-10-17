@@ -11,6 +11,12 @@ class Player {
     }
 
     toString = () => { return `${this.name}: ${this.hand.toString()}`; }
-}
 
+    turn = (first) => {  
+        if(first){
+            // Can only put one down
+            
+        }
+    }
+}
 module.exports = Player;
