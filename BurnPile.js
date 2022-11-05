@@ -7,16 +7,20 @@ class BurnPile {
         return this.cards.length > 0 && !this.dead;
     }
 
-    take = () => {
+    takeCard = () => {
         if (this.canTake()) {
             this.dead = true;
             return this.cards.pop();
         }
     }
 
-    add = (card) => {
+    addCard = (card) => {
         this.cards.push(card);
         this.dead = false;
+    }
+
+    topCard = () => {
+        return this.cards[this.cards.length - 1];
     }
 }
 

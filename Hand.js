@@ -4,6 +4,10 @@ class Hand{
     constructor(){
         this.cards = [];
     }
+    length = () => {
+        return this.cards.length;
+    }
+
     addCard(card){
         this.cards.push(card);
     }

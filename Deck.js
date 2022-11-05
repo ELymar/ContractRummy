@@ -32,6 +32,10 @@ class Deck {
             this.cards.push(new Card());
         }
     }
+
+    length = () => {
+        return this.cards.length;
+    }
 }
 
 module.exports = Deck; 

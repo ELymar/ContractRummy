@@ -1,30 +1,46 @@
-const readLine = require('readline');
-class Menu
-{
-    constructor(options){
-        this.options = options;
+const readlinesync = require('readline-sync');
+class Option {
+    constructor(name, action) {
+        this.name = name;
+        this.action = action;
+    }
+}
+
+class Menu {
+    constructor() {
+        this.options = [];
         this.selected = 0;
         this.selectedOption = this.options[this.selected];
     }
 
-    showOptions = () => {
-        console.log("Please select an option:"); 
-        this.options.forEach((option, idx) => {
-            console.log(`${idx + 1}. ${option}`);
-        });
-        // get user input
-        const rl = readLine.createInterface({
-            input: process.stdin,
-            output: process.stdout
-        });
-        rl.question('Enter your choice: ', (answer) => {
-            rl.close();
-            this.selected = answer - 1;
-            this.selectedOption = this.options[this.selected];
-            this.options.callback(); 
-        });
+    optionString = () => {
+        let str = `Please select an option:\n`;
+        for (let i = 0; i < this.options.length; i++) {
+            str += `${i + 1}. ${this.options[i].name}\n`;
+        }
+        return str;
+    }
+
+    addOption = (prompt, callback) => {
+        this.options.push(new Option(prompt, callback));
+    }
+
+    showOptionsAndProcessResponse = () => {
+        console.log(this.optionString());
+        // prompt user
+        let input = readlinesync.question('Enter option number: ');
+        // validate input
+        while (input < 1 || input > this.options.length) {
+            console.log('Invalid option');
+            this.showOptionsAndProcessResponse();
+        }
+        // execute callback
+        this.options[input - 1].action();
+
     }
     // Where should options live? GameAction strings and callbacks?
-    
+
 
 }
+
+module.exports = { Menu, Option };
