@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 const {
     VALUE_TO_EMOJI_MAP,
     SUIT_TO_EMOJI_MAP,
@@ -11,7 +12,12 @@ class Card{
     }
 
     toString = () => {
-        return `[${VALUE_TO_EMOJI_MAP.get(this.value)}${SUIT_TO_EMOJI_MAP.get(this.suit)}]`;
+        let str = `[${VALUE_TO_EMOJI_MAP.get(this.value)}${SUIT_TO_EMOJI_MAP.get(this.suit)}]`;
+        // red cards chalk red
+        if (this.suit === 'Hearts' || this.suit === 'Diamonds') {
+            str = chalk.red(str);
+        }
+        return str; 
     }
 
     static fromString = (str) => {
