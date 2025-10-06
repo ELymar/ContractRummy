@@ -11,10 +11,9 @@ class Card{
         this.value = value || 'Joker'; 
     }
 
-    toString = () => {
+    toString = (colors=false) => {
         let str = `[${VALUE_TO_EMOJI_MAP.get(this.value)}${SUIT_TO_EMOJI_MAP.get(this.suit)}]`;
-        // red cards chalk red
-        if (this.suit === 'Hearts' || this.suit === 'Diamonds') {
+        if (colors && (this.suit === 'Hearts' || this.suit === 'Diamonds')) {
             str = chalk.red(str);
         }
         return str; 

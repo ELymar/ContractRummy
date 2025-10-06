@@ -37,7 +37,7 @@ class Player {
     }
 
     takeFromDeck = (gameState) => {
-        if (!tookCard) {
+        if (!this.tookCard) {
             this.hand.addCard(gameState.deck.draw());
             this.tookCard = true;
         }

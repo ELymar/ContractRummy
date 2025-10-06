@@ -17,7 +17,7 @@ test('fromString [K♥] returns King of Hearts', () => {
     const card = Card.fromString('[K♥]');
     expect(card.suit).toBe('Hearts');
     expect(card.value).toBe('King');
-}); 
+});
 
 // 10 of spades
 test('fromString [10♠] returns 10 of Spades', () => {
@@ -31,7 +31,7 @@ test('fromString [🃏] returns Joker', () => {
     const card = Card.fromString('[🃏]');
     expect(card.suit).toBe('Joker');
     expect(card.value).toBe('Joker');
-}); 
+});
 
 // Test all 52 cards
 test('fromString for all 52 cards', () => {

@@ -1,6 +1,11 @@
 const Card = require('./Card');
 const { SUITS, VALUES } = require('./constants');
 
+const noChalk = (input) => {
+    input.replace(/\u001b[^m]*?m/g,"")
+    return input
+}
+
 const predecessor = (value) => {
     const index = VALUES.indexOf(value);
     if (index === 0) {

@@ -20,8 +20,8 @@ class Hand{
         [this.cards[idx1], this.cards[idx2]] = [this.cards[idx2], this.cards[idx1]];
     }
 
-    toString(){
-        return this.cards.map(card => card.toString()).join('');
+    toString(colors=false){
+        return this.cards.map(card => card.toString(colors)).join('');
     }
     static fromString(str){
         // Each card starts with [ and ends with ]
