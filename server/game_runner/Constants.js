@@ -1,12 +1,18 @@
+/**
+ * Game constants for Contract Rummy
+ * Contains card suits, values, and emoji mappings
+ */
+
+// Standard playing card suits
 const SUITS = [
     'Hearts',
     'Spades',
     'Clubs',
     'Diamonds',
     'Joker'
-]
+];
 
-// Two through Ace
+// Card values from Two through Ace
 const VALUES = [
     'Two',
     'Three', 
@@ -23,14 +29,16 @@ const VALUES = [
     'Ace'
 ]; 
 
+// Mapping from suit names to emoji symbols
 const SUIT_TO_EMOJI_MAP = new Map([
     ['Hearts', '♥'],
     ['Spades', '♠'],
     ['Clubs', '♣'],
     ['Diamonds', '♦'],
     ['Joker', '🃏']
-])
+]);
 
+// Mapping from value names to display symbols
 const VALUE_TO_EMOJI_MAP = new Map([
     ['Two', '2'],
     ['Three', '3'],
@@ -46,11 +54,9 @@ const VALUE_TO_EMOJI_MAP = new Map([
     ['King', 'K'],
     ['Ace', 'A'],
     ['Joker', '']
-])
+]);
 
-module.exports = { SUITS, VALUES, SUIT_TO_EMOJI_MAP, VALUE_TO_EMOJI_MAP }
-
-
+// Reverse mapping from emoji symbols to suit names
 const EMOJI_TO_SUIT_MAP = new Map([
     ['♥', 'Hearts'],
     ['♠', 'Spades'],
@@ -59,6 +65,7 @@ const EMOJI_TO_SUIT_MAP = new Map([
     ['🃏', 'Joker']
 ]);
 
+// Reverse mapping from display symbols to value names
 const EMOJI_TO_VALUE_MAP = new Map([
     ['A', 'Ace'],
     ['K', 'King'],
@@ -83,4 +90,4 @@ module.exports = {
     VALUE_TO_EMOJI_MAP, 
     EMOJI_TO_SUIT_MAP,
     EMOJI_TO_VALUE_MAP
-}; 
+};

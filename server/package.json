@@ -1,12 +1,14 @@
 {
   "name": "card-game",
   "version": "1.0.0",
-  "description": "",
-  "main": "cardGame.js",
+  "description": "Terminal-based Contract Rummy card game with interactive gameplay and turn management",
+  "main": "main.js",
   "scripts": {
     "test": "jest",
-    "start": "node ./index.js",
-    "startGame": "node ./game_runner/Game.js"
+    "start": "node ./main.js",
+    "play": "node ./main.js",
+    "legacy-game": "node ./game_runner/Game.js",
+    "legacy-server": "node ./index.js"
   },
   "author": "",
   "license": "ISC",

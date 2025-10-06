@@ -1,7 +1,7 @@
-const { assert } = require('console');
 const Hand = require('./Hand');
 const { Menu } = require('./Menu');
 const { isValidDupes, isValidSequence } = require('./Utils');
+const DownPile = require('./DownPile');
 class Player {
     constructor(name) {
         this.name = name;
@@ -38,7 +38,8 @@ class Player {
 
     takeFromDeck = (gameState) => {
         if (!this.tookCard) {
-            this.hand.addCard(gameState.deck.draw());
+            const drawnCards = gameState.deck.draw(1);
+            this.hand.addCard(drawnCards[0]);
             this.tookCard = true;
         }
     }
@@ -58,7 +59,9 @@ class Player {
             this.hand.cards.splice(idx, 1);
             this.discarded = true;
             console.log(`Your hand: ${this.hand.toString()}`);
-            console.log(`Burn pile: ${gameState.burnPile[gameState.burnPile.length - 1]}`);
+            if (gameState.burnPile.cards.length > 0) {
+                console.log(`Burn pile top card: ${gameState.burnPile.topCard().toString()}`);
+            }
         }
     }
 
@@ -71,22 +74,25 @@ class Player {
     goDown = (gameState, list_of_indices) => {
         // Hard coding 2 dupes for now (3, 3)
         if (!this.isDown && !this.discarded && this.tookCard) {
-            for (let i = 0; i < list_of_indices.length; i++) {
-                filteredCards = this.hand.cards.filter((card, idx) => { return list_of_indices.includes(idx) });
-                if (!isValidDupes(filteredCards)) {
-                    console.log("Unable to go down with this sequence" + filteredCards.map((card) => { return card.toString() }).join(', '));
-                    return;
-                };
-                // remove the cards from hand and place in new down pile
-                let downPile = new DownPile();
-                for (let i = 0; i < list_of_indices.length; i++) {
-                    downPile.addCard(this.hand.cards[list_of_indices[i]]);
-                    this.hand.cards.splice(list_of_indices[i], 1);
-                    assert()
-                }
-                gameState.downPiles.push(downPile);
+            let filteredCards = this.hand.cards.filter((card, idx) => { return list_of_indices.includes(idx) });
+            if (!isValidDupes(filteredCards)) {
+                console.log("Unable to go down with this sequence: " + filteredCards.map((card) => { return card.toString() }).join(', '));
+                return false;
             }
+            // remove the cards from hand and place in new down pile
+            let downPile = new DownPile('dupes', this.name);
+            // Sort indices in descending order to avoid index shifting issues
+            let sortedIndices = list_of_indices.sort((a, b) => b - a);
+            for (let i = 0; i < sortedIndices.length; i++) {
+                downPile.addCard(this.hand.cards[sortedIndices[i]]);
+                this.hand.cards.splice(sortedIndices[i], 1);
+            }
+            gameState.downPiles.push(downPile);
+            this.isDown = true;
+            console.log(`Successfully went down with: ${filteredCards.map(card => card.toString()).join(', ')}`);
+            return true;
         }
+        return false;
     }
 
     takeTurn = (gameState) => {

@@ -9,7 +9,7 @@ const buildDupes  = () => {
         Card.fromString('[K♦]')
     ];
     const player = new Player('Player 1');
-    const downPile = new DownPile(cards, player);
+    const downPile = new DownPile('dupes', player.name, cards);
     return downPile
 }
 
@@ -21,7 +21,7 @@ const buildSequence = () => {
         Card.fromString('[9♥]')
     ]
     const player = new Player('Player 1');
-    const downPile = new DownPile(cards, player);
+    const downPile = new DownPile('sequence', player.name, cards);
     return downPile;
 }
 
@@ -34,7 +34,7 @@ test('downpile can be created with dupes', () => {
         Card.fromString('[K♦]')
     ];
     const player = new Player('Player 1');
-    const downPile = new DownPile(cards, player);
+    const downPile = new DownPile('dupes', player.name, cards);
     expect(downPile.getCards()).toBe('[K♥][K♠][K♦]');
 });
 
@@ -88,7 +88,7 @@ test('sequence constructor doesn\'t throw error', () => {
         Card.fromString('[9♥]')
     ];
     const player = new Player('Player 1');
-    const downPile = new DownPile(cards, player);
+    const downPile = new DownPile('sequence', player.name, cards);
     expect(downPile.getCards()).toBe('[6♥][7♥][8♥][9♥]');
 });
 
@@ -128,7 +128,7 @@ test('replaceJoker with suited 4 works', () => {
         Card.fromString('[5♥]')
     ];
     const player = new Player('Player 1');
-    const downPile = new DownPile(cards, player);
+    const downPile = new DownPile('sequence', player.name, cards);
     expect(downPile.replaceJoker(Card.fromString('[4♥]'), 2, true)).toBe(true);
     expect(downPile.getCards()).toBe('[🃏][2♥][3♥][4♥][5♥]');
 });
@@ -142,7 +142,7 @@ test('replaceJoker with suited 4 works', () => {
         Card.fromString('[5♥]')
     ];
     const player = new Player('Player 1');
-    const downPile = new DownPile(cards, player);
+    const downPile = new DownPile('sequence', player.name, cards);
     expect(downPile.replaceJoker(Card.fromString('[4♥]'), 2, false)).toBe(true);
     expect(downPile.getCards()).toBe('[2♥][3♥][4♥][5♥][🃏]');
 });
