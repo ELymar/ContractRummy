@@ -1,6 +1,7 @@
 const Hand = require('./Hand');
 const SimpleMenu = require('./SimpleMenu');
 const GameIO = require('./GameIO');
+const CardSorter = require('./CardSorter');
 const { isValidDupes, isValidSequence } = require('./Utils');
 const DownPile = require('./DownPile');
 
@@ -41,10 +42,11 @@ class TerminalPlayer {
     // String representation of player and their hand
     toString = () => { return `${this.name}: ${this.hand.toString()}`; }
 
-    // Check if player can take from discard pile (not dead, hasn't drawn yet)
+    // Check if player can take from discard pile (not dead, hasn't drawn yet, not already down)
     canTakeFromDiscard = (gameState) => {
         return !this.tookCard &&
                !this.discarded &&
+               !this.isDown &&
                !gameState.burnPile.dead &&
                gameState.burnPile.cards.length > 0;
     }
@@ -75,9 +77,15 @@ class TerminalPlayer {
         this.hand.cards.forEach((card, idx) => {
             menu.addOption(`${card.toString()}`, () => idx);
         });
+        menu.addOption('Cancel (return to main menu)', () => 'cancel');
         
         const cardIndex = await menu.showAndExecute();
+        if (cardIndex === 'cancel') {
+            return false; // Return false to indicate cancellation
+        }
+        
         this.discard(gameState, cardIndex);
+        return true; // Return true to indicate successful discard
     }
 
     // Discard a card at the given index to the burn pile
@@ -136,7 +144,15 @@ class TerminalPlayer {
     async selectCardsToGoDown(gameState) {
         console.log('\n=== Going Down ===');
         console.log('You need to form melds (sets of 3+ same rank OR sequences of 4+ consecutive same suit)');
-        console.log('For this round, you need: 2 sets of 3 cards each\n');
+        
+        // Get contract info if available
+        try {
+            const { getContractForRound } = require('./RoundContract');
+            const contract = getContractForRound(1); // For now, always round 1
+            console.log(`Contract: ${contract.toString()}\n`);
+        } catch (error) {
+            console.log('For this round, you need: 2 sets of 3 cards each\n');
+        }
         
         const selectedMelds = [];
         const usedCardIndices = new Set();
@@ -212,15 +228,18 @@ class TerminalPlayer {
         }
     }
 
-    // Get confirmation for going down
+    // Get confirmation for going down using numbered menu
     async confirmGoingDown() {
-        const confirmInput = await this.getUserInput('\nConfirm going down with these melds? (yes/no): ');
-        return confirmInput.toLowerCase() === 'yes' || confirmInput.toLowerCase() === 'y';
+        const confirmMenu = new SimpleMenu('\nConfirm going down with these melds?');
+        confirmMenu.addOption('Yes, go down', () => true);
+        confirmMenu.addOption('No, cancel', () => false);
+        
+        return await confirmMenu.showAndExecute();
     }
 
     // Interactive interface for adding a card to an existing meld
     async selectCardToAddToMeld(gameState) {
-        console.log('\\n=== Add to Existing Melds ===');
+        console.log('\n=== Add to Existing Melds ===');
         
         // Show available melds
         console.log('Available melds on table:');
@@ -229,13 +248,13 @@ class TerminalPlayer {
         });
         
         // Show player's hand
-        console.log('\\nYour hand:');
+        console.log('\nYour hand:');
         this.hand.cards.forEach((card, idx) => {
             console.log(`${idx + 1}. ${card.toString()}`);
         });
         
         // Select which meld to add to
-        const meldInput = await this.getUserInput('\\nSelect meld number to add to (or \"cancel\"): ');
+        const meldInput = await this.getUserInput('\nSelect meld number to add to (or \"cancel\"): ');
         
         if (meldInput.toLowerCase() === 'cancel') {
             console.log('Adding to meld cancelled.');
@@ -251,7 +270,7 @@ class TerminalPlayer {
         const selectedMeld = gameState.downPiles[meldIndex];
         
         // Select which card to add
-        const cardInput = await this.getUserInput('\\nSelect card number to add (or \"cancel\"): ');
+        const cardInput = await this.getUserInput('\nSelect card number to add (or \"cancel\"): ');
         
         if (cardInput.toLowerCase() === 'cancel') {
             console.log('Adding to meld cancelled.');
@@ -272,13 +291,17 @@ class TerminalPlayer {
 
     // Add a card to a specific meld (handles beginning/end placement and joker replacement)
     async addCardToMeld(gameState, meld, card, cardIndex, meldIndex) {
-        console.log(`\\nAttempting to add ${card.toString()} to meld: ${meld.toString()}`);
+        console.log(`\nAttempting to add ${card.toString()} to meld: ${meld.toString()}`);
         
-        // Check if we're replacing a joker
+        // Check if we're replacing a joker (only for sequences, not sets)
         const jokerIndex = meld.cards.findIndex(c => c.value === 'Joker');
-        if (jokerIndex !== -1) {
-            const replaceInput = await this.getUserInput(`\\nThis meld has a joker at position ${jokerIndex + 1}. Replace joker? (yes/no): `);
-            if (replaceInput.toLowerCase() === 'yes' || replaceInput.toLowerCase() === 'y') {
+        if (jokerIndex !== -1 && meld.type === 'sequence') {
+            const replaceMenu = new SimpleMenu(`\nThis sequence has a joker at position ${jokerIndex + 1}. What would you like to do?`);
+            replaceMenu.addOption('Replace the joker', () => 'replace');
+            replaceMenu.addOption('Add to beginning/end instead', () => 'add');
+            
+            const choice = await replaceMenu.showAndExecute();
+            if (choice === 'replace') {
                 return await this.replaceJokerInMeld(gameState, meld, card, cardIndex, meldIndex, jokerIndex);
             }
         }
@@ -305,8 +328,11 @@ class TerminalPlayer {
 
     // Handle joker replacement in melds
     async replaceJokerInMeld(gameState, meld, card, cardIndex, meldIndex, jokerIndex) {
-        const frontInput = await this.getUserInput('\\nPlace replaced joker at front (f) or back (b) of meld? ');
-        const front = frontInput.toLowerCase() === 'f' || frontInput.toLowerCase() === 'front';
+        const positionMenu = new SimpleMenu('\nWhere should the replaced joker be placed?');
+        positionMenu.addOption('At the front of the sequence', () => true);
+        positionMenu.addOption('At the back of the sequence', () => false);
+        
+        const front = await positionMenu.showAndExecute();
         
         if (meld.replaceJoker(card, jokerIndex, front)) {
             this.hand.cards.splice(cardIndex, 1);
@@ -406,23 +432,31 @@ class TerminalPlayer {
             // Special case: if only 1 card left, can only discard (to win)
             if (this.hand.length() === 1) {
                 console.log('\nYou have only 1 card left! You must discard to win the game.');
-                await this.selectCardsToDiscard(gameState);
-                break;
+                const discarded = await this.selectCardsToDiscard(gameState);
+                if (discarded) {
+                    break;
+                }
+                // If cancelled, continue the loop (though with 1 card, they must discard)
+                continue;
             }
             
             const actionMenu = new SimpleMenu('Choose your action:');
             
-            // Can only go down if haven't gone down yet and have drawn a card
+            // Option 1: Always available - Discard and end turn
+            actionMenu.addOption('Discard and end turn', () => 'discard');
+            
+            // Option 2: Go down if haven't gone down yet and have drawn a card
             if (!this.isDown && this.tookCard) {
                 actionMenu.addOption('Go Down (lay down sets)', () => 'godown');
             }
             
-            // Can add to existing melds if already down and there are melds on table
+            // Option 3: Add to existing melds if already down and there are melds on table
             if (this.isDown && gameState.downPiles.length > 0) {
                 actionMenu.addOption('Add to existing melds', () => 'addtomeld');
             }
             
-            actionMenu.addOption('Discard and end turn', () => 'discard');
+            // Option 4: Always available - Sort hand
+            actionMenu.addOption('Sort hand', () => 'sort');
 
             const action = await actionMenu.showAndExecute();
 
@@ -436,8 +470,15 @@ class TerminalPlayer {
                 if (!addedToMeld) {
                     continue; // Try again if adding to meld failed
                 }
+            } else if (action === 'sort') {
+                await this.sortHand();
+                continue; // Return to action menu after sorting
             } else if (action === 'discard') {
-                await this.selectCardsToDiscard(gameState);
+                const discarded = await this.selectCardsToDiscard(gameState);
+                if (!discarded) {
+                    // If cancelled, continue to action menu
+                    continue;
+                }
             }
         }
 
@@ -448,6 +489,37 @@ class TerminalPlayer {
         }
 
         return gameState;
+    }
+
+    /**
+     * Interactive hand sorting with multiple options
+     */
+    async sortHand() {
+        console.log('\n=== Sort Hand ===');
+        console.log('Current hand:', this.hand.toString());
+        
+        const sortMenu = new SimpleMenu('How would you like to sort your hand?');
+        const sortingOptions = CardSorter.getSortingOptions();
+        
+        sortingOptions.forEach(option => {
+            sortMenu.addOption(option.name, () => option.key);
+        });
+        sortMenu.addOption('Cancel (keep current order)', () => 'cancel');
+        
+        const choice = await sortMenu.showAndExecute();
+        
+        if (choice === 'cancel') {
+            console.log('Hand sorting cancelled.');
+            return;
+        }
+        
+        // Find the selected sorting option and apply it
+        const selectedOption = sortingOptions.find(opt => opt.key === choice);
+        if (selectedOption) {
+            this.hand.cards = selectedOption.sorter(this.hand.cards);
+            console.log('\n✅ Hand sorted!');
+            console.log('New order:', this.hand.toString());
+        }
     }
 }
 

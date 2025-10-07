@@ -138,14 +138,14 @@ describe('GameIO', () => {
 
             GameIO.displayMeldSummary(mockMelds);
 
-            expect(consoleOutput[0]).toBe('\\n=== Meld Summary ===');
+            expect(consoleOutput[0]).toBe('\n=== Meld Summary ===');
             expect(consoleOutput[1]).toBe('Meld 1 (set): [A♥], [A♠], [A♣]');
             expect(consoleOutput[2]).toBe('Meld 2 (sequence): [6♥], [7♥], [8♥]');
         });
 
         test('should handle empty melds array', () => {
             GameIO.displayMeldSummary([]);
-            expect(consoleOutput[0]).toBe('\\n=== Meld Summary ===');
+            expect(consoleOutput[0]).toBe('\n=== Meld Summary ===');
             expect(consoleOutput.length).toBe(1);
         });
     });

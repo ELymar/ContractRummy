@@ -8,8 +8,8 @@ class GameState {
     }
 
     initialize = (players) => {
-        this.deck = new Deck(6);
-        this.deck.shuffle();
+        // Use 2 decks with 6 jokers each for 2-player game
+        this.deck = new Deck(12, 2);
         this.players = [];
         this.downPiles = [];
         this.burnPile = new BurnPile();

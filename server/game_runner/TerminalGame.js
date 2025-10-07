@@ -1,5 +1,9 @@
 const GameState = require('./GameState');
 const TerminalPlayer = require('./TerminalPlayer');
+const { getContractForRound, getTotalRounds } = require('./RoundContract');
+const ScoreKeeper = require('./ScoreKeeper');
+const CardScoring = require('./CardScoring');
+const RoundDealing = require('./RoundDealing');
 
 /**
  * Terminal-based Contract Rummy game orchestrator
@@ -8,15 +12,23 @@ const TerminalPlayer = require('./TerminalPlayer');
 class TerminalGame {
     /**
      * Create a new terminal game with two players
+     * @param {string} player1Name - Name for player 1 (default: 'Player 1')
+     * @param {string} player2Name - Name for player 2 (default: 'Player 2')
      */
-    constructor() {
+    constructor(player1Name = 'Player 1', player2Name = 'Player 2') {
         this.gameState = new GameState();
         this.players = [];
         this.currentPlayerIndex = 0;
+        this.currentRound = 1; // Start with round 1
+        this.dealerIndex = 0; // Start with Player 1 as dealer
         
         // Initialize two players for terminal gameplay
-        this.players.push(new TerminalPlayer('Player 1'));
-        this.players.push(new TerminalPlayer('Player 2'));
+        this.players.push(new TerminalPlayer(player1Name));
+        this.players.push(new TerminalPlayer(player2Name));
+        
+        // Initialize score tracking
+        const playerNames = this.players.map(player => player.name);
+        this.scoreKeeper = new ScoreKeeper(playerNames, getTotalRounds());
     }
 
     // Check if the game has ended (one player has no cards)
@@ -29,6 +41,16 @@ class TerminalGame {
         console.log('\n' + '='.repeat(60));
         console.log(`GAME STATE (for ${this.players[forPlayerIndex].name}):`);
         console.log('='.repeat(60));
+        
+        // Show current round contract
+        try {
+            const contract = getContractForRound(this.currentRound);
+            console.log(`📋 ${contract.toString()}`);
+        } catch (error) {
+            console.log(`📋 Round ${this.currentRound}`);
+        }
+        console.log('─'.repeat(60));
+        
         console.log(`Deck cards remaining: ${this.gameState.deck.length()}`);
         
         // Show burn pile top card
@@ -67,9 +89,12 @@ class TerminalGame {
         this.gameState.initialize();
         this.players.forEach(player => player.roundReset());
         
-        // Deal initial cards (Player 1 gets 11, Player 2 gets 10)
-        this.players[0].draw(this.gameState.deck, 11);
-        this.players[1].draw(this.gameState.deck, 10);
+        // Deal cards according to round requirements and dealer
+        const dealConfig = RoundDealing.getCardsForRound(this.currentRound, this.dealerIndex);
+        this.players[0].draw(this.gameState.deck, dealConfig.player1Cards);
+        this.players[1].draw(this.gameState.deck, dealConfig.player2Cards);
+        
+        console.log(`Dealer: ${this.players[this.dealerIndex].name}`);
         
         // Player 1 starts first
         this.currentPlayerIndex = 0;
@@ -78,6 +103,7 @@ class TerminalGame {
         console.log('Initial hands dealt!');
         console.log(`${this.players[0].name}: ${this.players[0].hand.length()} cards`);
         console.log(`${this.players[1].name}: ${this.players[1].hand.length()} cards`);
+        console.log(`Deck remaining: ${this.gameState.deck.length()} cards`);
     }
 
     // Switch to the next player's turn
@@ -86,30 +112,44 @@ class TerminalGame {
         this.gameState.setFirstTurn(false); // Only first turn of game is marked as firstTurn
     }
 
-    // Display final game results
-    displayResults = () => {
+    // Display final results for a round and record scores
+    displayRoundResults = () => {
         this.clearScreen();
         console.log('\n' + '🎉'.repeat(20));
-        console.log('           GAME OVER!');
+        console.log('           ROUND OVER!');
         console.log('🎉'.repeat(20));
         
+        // Determine winner and record scores
+        let winner = null;
         if (this.players[0].hand.length() === 0) {
-            console.log(`\n🏆 ${this.players[0].name} WINS! 🏆`);
+            winner = this.players[0].name;
+            console.log(`\n🏆 ${this.players[0].name} wins this round! 🏆`);
             console.log(`${this.players[1].name} finished with ${this.players[1].hand.length()} cards remaining.`);
         } else if (this.players[1].hand.length() === 0) {
-            console.log(`\n🏆 ${this.players[1].name} WINS! 🏆`);
+            winner = this.players[1].name;
+            console.log(`\n🏆 ${this.players[1].name} wins this round! 🏆`);
             console.log(`${this.players[0].name} finished with ${this.players[0].hand.length()} cards remaining.`);
         }
         
-        // Show final hands
+        // Show final hands and calculate scores
         console.log('\nFinal hands:');
+        const playerHands = {};
         this.players.forEach(player => {
             if (player.hand.length() > 0) {
                 console.log(`${player.name}: ${player.hand.toString()}`);
+                playerHands[player.name] = player.hand.cards;
             } else {
                 console.log(`${player.name}: No cards (Winner!)`);
+                playerHands[player.name] = [];
             }
         });
+        
+        // Record round score
+        this.scoreKeeper.recordRoundScore(this.currentRound, playerHands, winner);
+        
+        // Show round summary and score table
+        console.log(this.scoreKeeper.getRoundSummary(this.currentRound));
+        console.log(this.scoreKeeper.getScoreTable());
         
         // Show down piles that were created
         if (this.gameState.downPiles.length > 0) {
@@ -166,12 +206,70 @@ class TerminalGame {
             }
         }
         
-        // Display final results
-        this.displayResults();
+        // Display round results and record scores
+        this.displayRoundResults();
         
         if (turnCount >= maxTurns) {
             console.log('\n⚠️  Game ended due to turn limit reached.');
         }
+    }
+
+    /**
+     * Play the complete Contract Rummy game (all rounds)
+     * @returns {Promise<void>}
+     */
+    async playGame() {
+        console.log('\n🎮 Welcome to Contract Rummy! 🎮');
+        console.log('Playing all 7 rounds of the game...\n');
+        
+        while (!this.scoreKeeper.isGameComplete()) {
+            this.currentRound = this.scoreKeeper.getNextRoundNumber();
+            
+            console.log(`\n📋 Starting Round ${this.currentRound}...`);
+            await this.waitForEnter();
+            
+            await this.playRound();
+            
+            // Switch dealer for next round
+            this.dealerIndex = (this.dealerIndex + 1) % 2;
+            
+            // Check if game is complete
+            if (this.scoreKeeper.isGameComplete()) {
+                this.displayFinalResults();
+                break;
+            }
+            
+            // Wait between rounds
+            console.log('\nPress Enter to continue to next round...');
+            await this.waitForEnter();
+        }
+    }
+
+    /**
+     * Display final game results after all rounds
+     */
+    displayFinalResults() {
+        this.clearScreen();
+        console.log('\n' + '🏆'.repeat(30));
+        console.log('           GAME COMPLETE!');
+        console.log('🏆'.repeat(30));
+        
+        // Show final score table
+        console.log(this.scoreKeeper.getScoreTable());
+        
+        // Show final rankings
+        const rankings = this.scoreKeeper.getFinalRankings();
+        console.log('\n🏆 FINAL STANDINGS 🏆');
+        console.log('─'.repeat(30));
+        rankings.forEach((player, index) => {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+            const title = index === 0 ? 'WINNER' : `${index + 1}${index === 1 ? 'nd' : 'rd'} Place`;
+            console.log(`${medal} ${title}: ${player.name} (${player.score} points)`);
+        });
+        
+        console.log('\n' + '🎉'.repeat(30));
+        console.log('Thanks for playing Contract Rummy!');
+        console.log('🎉'.repeat(30));
     }
 
     /**

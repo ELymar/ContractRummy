@@ -82,7 +82,7 @@ class GameIO {
      * @param {Array} melds - Array of meld objects
      */
     static displayMeldSummary(melds) {
-        console.log('\\n=== Meld Summary ===');
+        console.log('\n=== Meld Summary ===');
         melds.forEach((meld, idx) => {
             console.log(`Meld ${idx + 1} (${meld.type}): ${meld.cards.map(card => card.toString()).join(', ')}`);
         });
