@@ -96,8 +96,9 @@ class TerminalGame {
         
         console.log(`Dealer: ${this.players[this.dealerIndex].name}`);
         
-        // Player 1 starts first
-        this.currentPlayerIndex = 0;
+        // Non-dealer starts first (the player with the extra card)
+        this.currentPlayerIndex = (this.dealerIndex + 1) % 2;
+        console.log(`First player: ${this.players[this.currentPlayerIndex].name} (non-dealer)`);
         this.gameState.setFirstTurn(true);
         
         console.log('Initial hands dealt!');
