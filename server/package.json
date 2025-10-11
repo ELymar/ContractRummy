@@ -8,7 +8,9 @@
     "start": "node ./main.js",
     "play": "node ./main.js",
     "legacy-game": "node ./game_runner/Game.js",
-    "legacy-server": "node ./index.js"
+    "legacy-server": "node ./index.js",
+    "ws-server": "node ./server/index-ws.js",
+    "ws-client": "node ./clients/terminal/TerminalClient.js"
   },
   "author": "",
   "license": "ISC",
@@ -17,6 +19,8 @@
     "express": "^4.18.2",
     "jest": "^29.2.0",
     "readline-sync": "^1.4.10",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "winston": "^3.18.3",
+    "ws": "^8.17.0"
   }
 }

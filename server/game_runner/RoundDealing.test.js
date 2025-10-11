@@ -130,7 +130,7 @@ describe('RoundDealing', () => {
         test('should include dealing description and notes', () => {
             const summary = RoundDealing.getRoundSummary(6, 1, ['Dealer Dan', 'Runner Rita']);
             expect(summary).toContain('Round 6: Runner Rita (dealer) gets 14 cards, Dealer Dan gets 15 cards');
-            expect(summary).toContain('Big hands');
+            expect(summary).toContain('One set of 3, two straights');
         });
     });
 });
