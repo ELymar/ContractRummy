@@ -584,6 +584,7 @@ class TerminalClient {
     this.view.yourHand = sortedHand;
     
     console.log('✅ Hand sorted!');
+    console.log('New order:', sortedHand.map(this.fmtCard.bind(this)).join(' '));
   }
 
   sortCards(cards, sortType) {
