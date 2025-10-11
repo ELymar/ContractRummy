@@ -31,8 +31,13 @@ const isValidSequence = (cards) => {
 
     // Look for first card that is not a joker
     let nonJokerIndex = 0;
-    while (cards[nonJokerIndex].value === 'Joker') {
+    while (nonJokerIndex < cards.length && cards[nonJokerIndex].value === 'Joker') {
         nonJokerIndex += 1;
+    }
+    
+    // If all cards are jokers, return false (caught by base rule check later, but defensive programming)
+    if (nonJokerIndex >= cards.length) {
+        return false;
     }
 
     // Check that all cards are same suit

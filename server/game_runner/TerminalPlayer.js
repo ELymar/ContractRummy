@@ -24,6 +24,7 @@ class TerminalPlayer {
      * Reset player state for a new round
      */
     roundReset = () => {
+        this.hand.clear();
         this.tookCard = false;
         this.isDown = false;
         this.discarded = false;
@@ -141,22 +142,25 @@ class TerminalPlayer {
     }
 
     // Interactive menu for selecting cards to go down (lay initial melds)
-    async selectCardsToGoDown(gameState) {
+    async selectCardsToGoDown(gameState, currentRound = 1) {
         console.log('\n=== Going Down ===');
         console.log('You need to form melds (sets of 3+ same rank OR sequences of 4+ consecutive same suit)');
         
-        // Get contract info if available
+        // Get contract info for current round
+        let contract;
         try {
             const { getContractForRound } = require('./RoundContract');
-            const contract = getContractForRound(1); // For now, always round 1
+            contract = getContractForRound(currentRound);
             console.log(`Contract: ${contract.toString()}\n`);
         } catch (error) {
             console.log('For this round, you need: 2 sets of 3 cards each\n');
+            // Fallback contract for Round 1
+            contract = { requirements: [{ type: 'set', minCards: 3 }, { type: 'set', minCards: 3 }] };
         }
         
         const selectedMelds = [];
         const usedCardIndices = new Set();
-        const requiredMelds = 2; // For now, require 2 sets (later this can be configurable based on round)
+        const requiredMelds = contract.requirements.length;
         
         // Select each required meld
         for (let meldNum = 1; meldNum <= requiredMelds; meldNum++) {
@@ -170,6 +174,13 @@ class TerminalPlayer {
         
         // Show summary and get confirmation
         GameIO.displayMeldSummary(selectedMelds);
+        
+        // Validate contract requirements
+        if (contract.isContractSatisfied && !contract.isContractSatisfied(selectedMelds)) {
+            console.log('\n❌ Selected melds do not satisfy the contract requirements.');
+            console.log('Please try again with melds that match the contract.');
+            return false;
+        }
         
         const confirmed = await this.confirmGoingDown();
         if (!confirmed) {
@@ -293,9 +304,17 @@ class TerminalPlayer {
     async addCardToMeld(gameState, meld, card, cardIndex, meldIndex) {
         console.log(`\nAttempting to add ${card.toString()} to meld: ${meld.toString()}`);
         
-        // Check if we're replacing a joker (only for sequences, not sets)
+        // Check what options are available for this card
+        const canAddToBeginning = this.canAddCardToMeld(meld, card, 0);
+        const canAddToEnd = this.canAddCardToMeld(meld, card, null);
+        
+        // Check if we can replace a joker (only for sequences)
         const jokerIndex = meld.cards.findIndex(c => c.value === 'Joker');
-        if (jokerIndex !== -1 && meld.type === 'sequence') {
+        const canReplaceJoker = jokerIndex !== -1 && meld.type === 'sequence' && 
+                               this.canReplaceJokerInMeld(meld, card, jokerIndex);
+        
+        // If multiple options are available, let player choose
+        if ((canAddToBeginning || canAddToEnd) && canReplaceJoker) {
             const replaceMenu = new SimpleMenu(`\nThis sequence has a joker at position ${jokerIndex + 1}. What would you like to do?`);
             replaceMenu.addOption('Replace the joker', () => 'replace');
             replaceMenu.addOption('Add to beginning/end instead', () => 'add');
@@ -304,10 +323,14 @@ class TerminalPlayer {
             if (choice === 'replace') {
                 return await this.replaceJokerInMeld(gameState, meld, card, cardIndex, meldIndex, jokerIndex);
             }
+        } else if (canReplaceJoker && !canAddToBeginning && !canAddToEnd) {
+            // Only joker replacement is possible
+            return await this.replaceJokerInMeld(gameState, meld, card, cardIndex, meldIndex, jokerIndex);
         }
         
         // Try adding to beginning (index 0)
-        if (meld.addCard(card, 0)) {
+        if (canAddToBeginning) {
+            meld.addCard(card, 0);
             this.hand.cards.splice(cardIndex, 1);
             console.log(`✅ Added ${card.toString()} to beginning of meld.`);
             console.log(`   Updated meld: ${meld.toString()}`);
@@ -315,7 +338,8 @@ class TerminalPlayer {
         }
         
         // Try adding to end
-        if (meld.addCard(card)) {
+        if (canAddToEnd) {
+            meld.addCard(card);
             this.hand.cards.splice(cardIndex, 1);
             console.log(`✅ Added ${card.toString()} to end of meld.`);
             console.log(`   Updated meld: ${meld.toString()}`);
@@ -323,6 +347,54 @@ class TerminalPlayer {
         }
         
         console.log(`❌ Cannot add ${card.toString()} to this meld. It doesn't form a valid sequence or set.`);
+        return false;
+    }
+
+    // Check if a card can be added to a meld at a specific position without modifying the meld
+    canAddCardToMeld(meld, card, idx) {
+        let newCards = [...meld.cards];
+        
+        if (idx !== null) {
+            // add card at specific index
+            newCards.splice(idx, 0, card);
+        } else {
+            // add card at end
+            newCards.push(card);
+        }
+        
+        if (meld.type === 'dupes' && isValidDupes(newCards)) {
+            return true;
+        } else if (meld.type === 'sequence' && isValidSequence(newCards)) {
+            return true;
+        }
+        return false;
+    }
+
+    // Check if a card can replace a joker in a meld without modifying the meld
+    canReplaceJokerInMeld(meld, card, jokerIndex) {
+        if (meld.cards[jokerIndex].value !== 'Joker') {
+            return false;
+        }
+        
+        // Try replacing joker and placing it at front
+        let newCards = [...meld.cards];
+        let joker = newCards[jokerIndex];
+        newCards[jokerIndex] = card;
+        newCards = [joker, ...newCards];
+        
+        if (meld.type === 'sequence' && isValidSequence(newCards)) {
+            return true;
+        }
+        
+        // Try replacing joker and placing it at back
+        newCards = [...meld.cards];
+        newCards[jokerIndex] = card;
+        newCards = [...newCards, joker];
+        
+        if (meld.type === 'sequence' && isValidSequence(newCards)) {
+            return true;
+        }
+        
         return false;
     }
 
@@ -400,7 +472,7 @@ class TerminalPlayer {
      * @param {GameState} gameState - Current game state
      * @returns {Promise<GameState>} Updated game state after turn
      */
-    async takeTurn(gameState) {
+    async takeTurn(gameState, currentRound = 1) {
         console.log(`\n=== ${this.name}'s Turn ===`);
         console.log(`Your hand: ${this.hand.toString()}`);
         
@@ -461,7 +533,7 @@ class TerminalPlayer {
             const action = await actionMenu.showAndExecute();
 
             if (action === 'godown') {
-                const wentDown = await this.selectCardsToGoDown(gameState);
+                const wentDown = await this.selectCardsToGoDown(gameState, currentRound);
                 if (!wentDown) {
                     continue; // Try again if going down failed
                 }

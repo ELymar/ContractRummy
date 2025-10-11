@@ -59,7 +59,7 @@ class Game {
         while (!this.ended()) {
         
             console.log(`Player ${this.players[0].name}'s turn`);
-            let newGameState = this.players[0].takeTurn(this.gameState);
+            let newGameState = this.players[0].takeTurn(this.gameState, 1);
             console.log(`Player ${this.players[0].name}'s turn ended`);
         
             // TODO Validate newGameState
@@ -70,7 +70,7 @@ class Game {
             console.log(this.toString(1));
             console.log(`Player ${this.players[1].name}'s turn`);
             this.gameState.firstTurn = false;
-            newGameState = this.players[1].takeTurn(this.gameState);
+            newGameState = this.players[1].takeTurn(this.gameState, 1);
             console.log(`Player ${this.players[1].name}'s turn ended`);
 
             // TODO Validate newGameState

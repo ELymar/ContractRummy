@@ -31,3 +31,11 @@ test('fromString for 11 cards', () => {
     expect(hand.cards[9].toString()).toBe('[K♥]');
     expect(hand.cards[10].toString()).toBe('[10♠]');
 });
+
+test('clear() empties the hand', () => {
+    const hand = Hand.fromString('[K♥][10♠][🃏]');
+    expect(hand.cards.length).toBe(3);
+    
+    hand.clear();
+    expect(hand.cards.length).toBe(0);
+});

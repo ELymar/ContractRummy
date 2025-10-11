@@ -138,3 +138,17 @@ test ('King of hearts, Queen of spades, Queen of clubs is not dupes', () => {
     const hand = Hand.fromString(handString);
     expect(isValidDupes(hand.cards)).toBe(false);
 }); 
+
+// test that all jokers is not a valid set (base rule: need at least 2 non-jokers)
+test ('Three jokers is not a valid set', () => {   
+    handString = '[🃏][🃏][🃏]';
+    const hand = Hand.fromString(handString);
+    expect(isValidDupes(hand.cards)).toBe(false);
+}); 
+
+// test that all jokers is not a valid sequence (base rule: need at least 2 non-jokers)
+test ('Four jokers is not a valid sequence', () => {   
+    handString = '[🃏][🃏][🃏][🃏]';
+    const hand = Hand.fromString(handString);
+    expect(isValidSequence(hand.cards)).toBe(false);
+}); 

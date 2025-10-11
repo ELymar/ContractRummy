@@ -16,6 +16,10 @@ class Hand{
         this.cards.push(...cards);
     }
 
+    clear(){
+        this.cards = [];
+    }
+
     swap(idx1, idx2){
         [this.cards[idx1], this.cards[idx2]] = [this.cards[idx2], this.cards[idx1]];
     }

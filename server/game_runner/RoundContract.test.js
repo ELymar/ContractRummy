@@ -119,6 +119,61 @@ describe('Module functions', () => {
         });
     });
 
+    describe('All round requirements', () => {
+        test('should require 2 melds for Round 1', () => {
+            const contract = getContractForRound(1);
+            expect(contract.requirements.length).toBe(2);
+            expect(contract.requirements[0].type).toBe('set');
+            expect(contract.requirements[1].type).toBe('set');
+        });
+
+        test('should require 2 melds for Round 2', () => {
+            const contract = getContractForRound(2);
+            expect(contract.requirements.length).toBe(2);
+            expect(contract.requirements[0].type).toBe('set');
+            expect(contract.requirements[1].type).toBe('sequence');
+        });
+
+        test('should require 2 melds for Round 3', () => {
+            const contract = getContractForRound(3);
+            expect(contract.requirements.length).toBe(2);
+            expect(contract.requirements[0].type).toBe('sequence');
+            expect(contract.requirements[1].type).toBe('sequence');
+        });
+
+        test('should require 3 melds for Round 4', () => {
+            const contract = getContractForRound(4);
+            expect(contract.requirements.length).toBe(3);
+            expect(contract.requirements[0].type).toBe('set');
+            expect(contract.requirements[1].type).toBe('set');
+            expect(contract.requirements[2].type).toBe('set');
+        });
+
+        test('should require 3 melds for Round 5', () => {
+            const contract = getContractForRound(5);
+            expect(contract.requirements.length).toBe(3);
+            expect(contract.requirements[0].type).toBe('set');
+            expect(contract.requirements[1].type).toBe('set');
+            expect(contract.requirements[2].type).toBe('sequence');
+        });
+
+        test('should require 3 melds for Round 6', () => {
+            const contract = getContractForRound(6);
+            expect(contract.requirements.length).toBe(3);
+            expect(contract.requirements[0].type).toBe('set');
+            expect(contract.requirements[1].type).toBe('sequence');
+            expect(contract.requirements[2].type).toBe('sequence');
+        });
+
+        test('should require 3 melds for Round 7', () => {
+            const contract = getContractForRound(7);
+            expect(contract.requirements.length).toBe(3);
+            expect(contract.requirements[0].type).toBe('sequence');
+            expect(contract.requirements[1].type).toBe('sequence');
+            expect(contract.requirements[2].type).toBe('sequence');
+        });
+    });
+
     describe('ROUND_CONTRACTS', () => {
         test('should have 7 rounds defined', () => {
             expect(ROUND_CONTRACTS.length).toBe(7);

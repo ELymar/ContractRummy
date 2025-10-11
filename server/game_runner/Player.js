@@ -10,6 +10,7 @@ class Player {
 
     }
     roundReset = () => {
+        this.hand.clear();
         this.tookCard = false;
         this.isDown = false;
         this.discarded = false;
@@ -95,7 +96,7 @@ class Player {
         return false;
     }
 
-    takeTurn = (gameState) => {
+    takeTurn = (gameState, currentRound = 1) => {
         let newGameState = { ...gameState }
         while (!this.discarded) {
             console.log('FIRST TURN: ' + newGameState.firstTurn);

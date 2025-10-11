@@ -24,6 +24,35 @@ class ScoreKeeper {
     }
     
     /**
+     * Load previous round scores (for resuming games)
+     * @param {Array<Array<number>>} roundScores - Array of [p1_score, p2_score] tuples
+     */
+    loadPreviousScores(roundScores) {
+        if (roundScores.length > this.totalRounds) {
+            throw new Error(`Cannot load ${roundScores.length} rounds, game only has ${this.totalRounds} rounds`);
+        }
+        
+        roundScores.forEach((scores, index) => {
+            const roundNumber = index + 1;
+            if (scores.length !== this.playerNames.length) {
+                throw new Error(`Round ${roundNumber} scores must have exactly ${this.playerNames.length} scores`);
+            }
+            
+            // Set scores for each player
+            this.playerNames.forEach((playerName, playerIndex) => {
+                this.scores[playerName][index] = scores[playerIndex];
+            });
+            
+            // Create minimal round details (we don't have hand details for resumed games)
+            this.roundDetails[roundNumber] = {
+                winner: 'Unknown', // We don't know who won previous rounds
+                cardsRemaining: {},
+                playerHands: {}
+            };
+        });
+    }
+    
+    /**
      * Record scores for a completed round
      * @param {number} roundNumber - Round number (1-based)
      * @param {Object} playerHands - Object mapping player names to their remaining cards

@@ -212,4 +212,45 @@ describe('ScoreKeeper', () => {
             expect(summary).toContain('Player 2: 1 cards remaining = 15 points');
         });
     });
+
+    describe('loadPreviousScores', () => {
+        test('should load previous round scores correctly', () => {
+            const previousScores = [[25, 15], [30, 20], [10, 35]];
+            scoreKeeper.loadPreviousScores(previousScores);
+            
+            expect(scoreKeeper.scores['Player 1'][0]).toBe(25);
+            expect(scoreKeeper.scores['Player 2'][0]).toBe(15);
+            expect(scoreKeeper.scores['Player 1'][1]).toBe(30);
+            expect(scoreKeeper.scores['Player 2'][1]).toBe(20);
+            expect(scoreKeeper.scores['Player 1'][2]).toBe(10);
+            expect(scoreKeeper.scores['Player 2'][2]).toBe(35);
+        });
+
+        test('should set next round correctly after loading scores', () => {
+            const previousScores = [[25, 15], [30, 20]];
+            scoreKeeper.loadPreviousScores(previousScores);
+            
+            expect(scoreKeeper.getNextRoundNumber()).toBe(3);
+        });
+
+        test('should throw error for too many rounds', () => {
+            const tooManyScores = new Array(8).fill([10, 20]); // 8 rounds for 3-round game
+            expect(() => scoreKeeper.loadPreviousScores(tooManyScores))
+                .toThrow('Cannot load 8 rounds, game only has 3 rounds');
+        });
+
+        test('should throw error for wrong number of player scores', () => {
+            const badScores = [[25]]; // Only 1 score for 2-player game
+            expect(() => scoreKeeper.loadPreviousScores(badScores))
+                .toThrow('Round 1 scores must have exactly 2 scores');
+        });
+
+        test('should calculate totals correctly with loaded scores', () => {
+            const previousScores = [[25, 15], [30, 20]];
+            scoreKeeper.loadPreviousScores(previousScores);
+            
+            expect(scoreKeeper.getTotalScore('Player 1')).toBe(55);
+            expect(scoreKeeper.getTotalScore('Player 2')).toBe(35);
+        });
+    });
 });

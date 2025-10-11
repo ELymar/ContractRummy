@@ -11,26 +11,26 @@ class RoundDealing {
      * @returns {Object} Object with player1Cards and player2Cards
      */
     static getCardsForRound(roundNumber, dealerIndex = 0) {
-        // Base cards for each round (minimum cards)
-        const baseCardsPerRound = {
-            1: 10, // 11, 33
-            2: 10, // 11, 34  
-            3: 10, // 11, 44
-            4: 12, // 13, 333
-            5: 12, // 13, 334
-            6: 14, // 15, 344
-            7: 14  // 15, 444
+        // Base cards for each round (dealer gets these, non-dealer gets +1)
+        const dealerCardsPerRound = {
+            1: 10, // dealer: 10, non-dealer: 11
+            2: 10, // dealer: 10, non-dealer: 11  
+            3: 10, // dealer: 10, non-dealer: 11
+            4: 12, // dealer: 12, non-dealer: 13
+            5: 12, // dealer: 12, non-dealer: 13
+            6: 14, // dealer: 14, non-dealer: 15
+            7: 14  // dealer: 14, non-dealer: 15
         };
 
         if (roundNumber < 1 || roundNumber > 7) {
             throw new Error(`Invalid round number: ${roundNumber}. Must be 1-7.`);
         }
 
-        const baseCards = baseCardsPerRound[roundNumber];
+        const dealerCards = dealerCardsPerRound[roundNumber];
         
-        // Non-dealer gets the extra card
-        const player1Cards = dealerIndex === 0 ? baseCards : baseCards + 1;
-        const player2Cards = dealerIndex === 1 ? baseCards : baseCards + 1;
+        // Dealer gets base cards, non-dealer gets one extra
+        const player1Cards = dealerIndex === 0 ? dealerCards : dealerCards + 1;
+        const player2Cards = dealerIndex === 1 ? dealerCards : dealerCards + 1;
 
         return { player1Cards, player2Cards };
     }

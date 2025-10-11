@@ -14,13 +14,14 @@ class TerminalGame {
      * Create a new terminal game with two players
      * @param {string} player1Name - Name for player 1 (default: 'Player 1')
      * @param {string} player2Name - Name for player 2 (default: 'Player 2')
+     * @param {Array<Array<number>>} previousScores - Array of [p1_score, p2_score] tuples for completed rounds
      */
-    constructor(player1Name = 'Player 1', player2Name = 'Player 2') {
+    constructor(player1Name = 'Player 1', player2Name = 'Player 2', previousScores = []) {
         this.gameState = new GameState();
         this.players = [];
         this.currentPlayerIndex = 0;
-        this.currentRound = 1; // Start with round 1
-        this.dealerIndex = 0; // Start with Player 1 as dealer
+        this.currentRound = 1; // Will be updated based on previous scores
+        this.dealerIndex = 0; // Will be updated based on starting round
         
         // Initialize two players for terminal gameplay
         this.players.push(new TerminalPlayer(player1Name));
@@ -29,6 +30,25 @@ class TerminalGame {
         // Initialize score tracking
         const playerNames = this.players.map(player => player.name);
         this.scoreKeeper = new ScoreKeeper(playerNames, getTotalRounds());
+        
+        // Load previous scores if provided
+        if (previousScores.length > 0) {
+            this.loadPreviousScores(previousScores);
+            // Set starting round and dealer based on completed rounds
+            this.currentRound = previousScores.length + 1;
+            this.dealerIndex = previousScores.length % 2; // Dealer alternates each round
+        }
+    }
+
+    /**
+     * Load previous round scores into the scorekeeper
+     * @param {Array<Array<number>>} previousScores - Array of [p1_score, p2_score] tuples
+     */
+    loadPreviousScores(previousScores) {
+        this.scoreKeeper.loadPreviousScores(previousScores);
+        console.log(`\n📊 Loaded ${previousScores.length} previous round${previousScores.length === 1 ? '' : 's'}`);
+        console.log('Previous scores:');
+        console.log(this.scoreKeeper.getScoreTable());
     }
 
     // Check if the game has ended (one player has no cards)
@@ -184,7 +204,7 @@ class TerminalGame {
             
             // Execute player's turn
             try {
-                await currentPlayer.takeTurn(this.gameState);
+                await currentPlayer.takeTurn(this.gameState, this.currentRound);
                 
                 // Check if game ended after this turn
                 if (this.ended()) {
