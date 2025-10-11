@@ -20,6 +20,15 @@ class Player {
     draw = (deck, nCards) => {
         this.hand.addCards(deck.draw(nCards));
     }
+    
+    /**
+     * Draw cards from game state deck with reshuffle support
+     * @param {GameState} gameState - Game state containing deck and burn pile
+     * @param {number} nCards - Number of cards to draw
+     */
+    drawFromGameState = (gameState, nCards) => {
+        this.hand.addCards(gameState.drawFromDeck(nCards));
+    }
 
     toString = () => { return `${this.name}: ${this.hand.toString()}`; }
 
@@ -39,7 +48,7 @@ class Player {
 
     takeFromDeck = (gameState) => {
         if (!this.tookCard) {
-            const drawnCards = gameState.deck.draw(1);
+            const drawnCards = gameState.drawFromDeck(1);
             this.hand.addCard(drawnCards[0]);
             this.tookCard = true;
         }

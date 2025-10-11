@@ -45,9 +45,41 @@ describe('RoundDealing', () => {
         });
 
         test('should throw error for invalid round numbers', () => {
-            expect(() => RoundDealing.getCardsForRound(0)).toThrow('Invalid round number: 0');
-            expect(() => RoundDealing.getCardsForRound(8)).toThrow('Invalid round number: 8');
-            expect(() => RoundDealing.getCardsForRound(-1)).toThrow('Invalid round number: -1');
+            expect(() => RoundDealing.getCardsForRound(0)).toThrow('Invalid round number: 0. Must be 1-7.');
+            expect(() => RoundDealing.getCardsForRound(8)).toThrow('Invalid round number: 8. Must be 1-7.');
+            expect(() => RoundDealing.getCardsForRound(-1)).toThrow('Invalid round number: -1. Must be 1-7.');
+        });
+    });
+
+    describe('getRoundPlan', () => {
+        test('should provide detailed plan for round 1', () => {
+            const plan = RoundDealing.getRoundPlan(1, 0, ['Alice', 'Bob']);
+
+            expect(plan.dealer.name).toBe('Alice');
+            expect(plan.dealer.cards).toBe(10);
+            expect(plan.nonDealer.name).toBe('Bob');
+            expect(plan.nonDealer.cards).toBe(11);
+            expect(plan.cardsPerIndex).toEqual([10, 11]);
+            expect(plan.totalCards).toBe(21);
+            expect(plan.description.length).toBeGreaterThan(0);
+        });
+
+        test('should swap dealer and non-dealer when dealerIndex is 1', () => {
+            const plan = RoundDealing.getRoundPlan(4, 1, ['Alice', 'Bob']);
+
+            expect(plan.dealer.name).toBe('Bob');
+            expect(plan.dealer.cards).toBe(12);
+            expect(plan.nonDealer.name).toBe('Alice');
+            expect(plan.nonDealer.cards).toBe(13);
+            expect(plan.cardsPerIndex).toEqual([13, 12]);
+        });
+
+        test('should throw when dealer index is invalid', () => {
+            expect(() => RoundDealing.getRoundPlan(1, 2)).toThrow('Invalid dealer index: 2. Must be 0 or 1.');
+        });
+
+        test('should throw when player names missing', () => {
+            expect(() => RoundDealing.getRoundPlan(1, 0, ['Solo'])).toThrow('playerNames must contain at least two entries.');
         });
     });
 
@@ -91,6 +123,14 @@ describe('RoundDealing', () => {
         test('should return correct description for round 4 with dealer 0', () => {
             const description = RoundDealing.getRoundDealingDescription(4, 0);
             expect(description).toBe('Round 4: Player 1 (dealer) gets 12 cards, Player 2 gets 13 cards');
+        });
+    });
+
+    describe('getRoundSummary', () => {
+        test('should include dealing description and notes', () => {
+            const summary = RoundDealing.getRoundSummary(6, 1, ['Dealer Dan', 'Runner Rita']);
+            expect(summary).toContain('Round 6: Runner Rita (dealer) gets 14 cards, Dealer Dan gets 15 cards');
+            expect(summary).toContain('Big hands');
         });
     });
 });

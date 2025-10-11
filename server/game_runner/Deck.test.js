@@ -57,5 +57,43 @@ describe('Deck', () => {
             expect(deck1.cards).not.toEqual(deck2.cards);
         });
     });
+
+    describe('reshuffle functionality', () => {
+        test('canDraw returns true when deck has enough cards', () => {
+            const deck = new Deck(0);
+            expect(deck.canDraw(5)).toBe(true);
+            expect(deck.canDraw(52)).toBe(true);
+        });
+
+        test('canDraw returns false when deck does not have enough cards', () => {
+            const deck = new Deck(0);
+            deck.draw(50); // Draw most cards
+            expect(deck.canDraw(5)).toBe(false);
+            expect(deck.canDraw(3)).toBe(false);
+        });
+
+        test('addCards increases deck size and shuffles', () => {
+            const deck = new Deck(0);
+            const initialLength = deck.cards.length;
+            const Card = require('./Card');
+            const cardsToAdd = [
+                new Card('Hearts', 'Ace'),
+                new Card('Spades', 'King')
+            ];
+            
+            deck.addCards(cardsToAdd);
+            
+            expect(deck.cards.length).toBe(initialLength + 2);
+        });
+
+        test('addCards with empty array does not change deck', () => {
+            const deck = new Deck(0);
+            const initialLength = deck.cards.length;
+            
+            deck.addCards([]);
+            
+            expect(deck.cards.length).toBe(initialLength);
+        });
+    });
 });
 

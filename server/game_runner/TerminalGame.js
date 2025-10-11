@@ -4,6 +4,7 @@ const { getContractForRound, getTotalRounds } = require('./RoundContract');
 const ScoreKeeper = require('./ScoreKeeper');
 const CardScoring = require('./CardScoring');
 const RoundDealing = require('./RoundDealing');
+const GameIO = require('./GameIO');
 
 /**
  * Terminal-based Contract Rummy game orchestrator
@@ -102,8 +103,13 @@ class TerminalGame {
     // Set up initial game state and deal cards
     setupRound = () => {
         console.log('\n🎮 Starting New Round of Contract Rummy! 🎮');
-        console.log('Each player needs to form sets of 3+ cards of the same rank to go down.');
-        console.log('First player to empty their hand wins!\n');
+
+        try {
+            const contract = getContractForRound(this.currentRound);
+            console.log(`Contract for this round: ${contract.toString()}`);
+        } catch (error) {
+            console.log('Contract details unavailable for this round.');
+        }
         
         // Reset game state
         this.gameState.initialize();
@@ -111,10 +117,14 @@ class TerminalGame {
         
         // Deal cards according to round requirements and dealer
         const dealConfig = RoundDealing.getCardsForRound(this.currentRound, this.dealerIndex);
-        this.players[0].draw(this.gameState.deck, dealConfig.player1Cards);
-        this.players[1].draw(this.gameState.deck, dealConfig.player2Cards);
+        this.players[0].drawFromGameState(this.gameState, dealConfig.player1Cards);
+        this.players[1].drawFromGameState(this.gameState, dealConfig.player2Cards);
         
-        console.log(`Dealer: ${this.players[this.dealerIndex].name}`);
+    const playerNames = this.players.map(player => player.name);
+    const dealingSummary = RoundDealing.getRoundSummary(this.currentRound, this.dealerIndex, playerNames);
+
+    console.log(`Dealer: ${this.players[this.dealerIndex].name}`);
+    console.log(dealingSummary);
         
         // Non-dealer starts first (the player with the extra card)
         this.currentPlayerIndex = (this.dealerIndex + 1) % 2;
@@ -247,7 +257,7 @@ class TerminalGame {
             this.currentRound = this.scoreKeeper.getNextRoundNumber();
             
             console.log(`\n📋 Starting Round ${this.currentRound}...`);
-            await this.waitForEnter();
+            await GameIO.waitForEnter('Press Enter to begin the round...');
             
             await this.playRound();
             
@@ -262,7 +272,7 @@ class TerminalGame {
             
             // Wait between rounds
             console.log('\nPress Enter to continue to next round...');
-            await this.waitForEnter();
+            await GameIO.waitForEnter();
         }
     }
 
@@ -307,31 +317,7 @@ class TerminalGame {
      * @returns {Promise<void>}
      */
     async showPlayerTransition(playerName) {
-        this.clearScreen();
-        console.log('\n' + '='.repeat(60));
-        console.log(`🎮 ${playerName}'s Turn - Pass the laptop! 🎮`);
-        console.log('='.repeat(60));
-        console.log(`\n${playerName}, when you're ready to take your turn, press Enter...`);
-        console.log('(Other player should look away!)\n');
-        
-        await this.waitForEnter();
-        this.clearScreen();
-    }
-
-    // Utility function to wait for user input (for turn pacing)
-    async waitForEnter() {
-        const readline = require('readline');
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout
-        });
-
-        return new Promise((resolve) => {
-            rl.question('', () => {
-                rl.close();
-                resolve();
-            });
-        });
+        await GameIO.showPlayerTransition(playerName, this.clearScreen.bind(this));
     }
 }
 

@@ -87,6 +87,39 @@ class GameIO {
             console.log(`Meld ${idx + 1} (${meld.type}): ${meld.cards.map(card => card.toString()).join(', ')}`);
         });
     }
+
+    /**
+     * Wait for the user to press enter (optionally displaying a prompt)
+     * @param {string} prompt - Prompt to display before waiting
+     * @returns {Promise<void>}
+     */
+    static async waitForEnter(prompt = 'Press Enter to continue...') {
+        await GameIO.getUserInput(`${prompt}`);
+    }
+
+    /**
+     * Display a player transition screen and wait for confirmation
+     * @param {string} playerName - Name of the next player
+     * @param {Function} clearScreen - Optional function to clear the terminal
+     * @returns {Promise<void>}
+     */
+    static async showPlayerTransition(playerName, clearScreen = () => {}) {
+        if (typeof clearScreen === 'function') {
+            clearScreen();
+        }
+
+        console.log('\n' + '='.repeat(60));
+        console.log(`🎮 ${playerName}'s Turn - Pass the laptop! 🎮`);
+        console.log('='.repeat(60));
+        console.log(`\n${playerName}, when you're ready to take your turn, press Enter...`);
+        console.log('(Other player should look away!)\n');
+
+    await GameIO.waitForEnter('');
+
+        if (typeof clearScreen === 'function') {
+            clearScreen();
+        }
+    }
 }
 
 module.exports = GameIO;

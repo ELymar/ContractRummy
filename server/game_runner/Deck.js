@@ -1,5 +1,5 @@
 const Card = require('./Card');
-const { SUITS, VALUES } = require('./constants');
+const { SUITS, VALUES } = require('./Constants');
 
 class Deck {
     constructor(nJokers, nDecks = 1) {
@@ -18,7 +18,28 @@ class Deck {
 
     draw = (nCards) => {
         const { cards } = this;
+        if (cards.length < nCards) {
+            throw new Error(`Cannot draw ${nCards} cards, only ${cards.length} cards remaining in deck`);
+        }
         return cards.splice(cards.length - nCards, nCards);
+    }
+    
+    /**
+     * Add cards to the deck and shuffle
+     * @param {Card[]} newCards - Cards to add to deck
+     */
+    addCards = (newCards) => {
+        this.cards.push(...newCards);
+        this.shuffle();
+    }
+    
+    /**
+     * Check if deck has enough cards for a draw
+     * @param {number} nCards - Number of cards needed
+     * @returns {boolean} True if deck has enough cards
+     */
+    canDraw = (nCards) => {
+        return this.cards.length >= nCards;
     }
 
     reset = (nJokers, nDecks = 1) => {

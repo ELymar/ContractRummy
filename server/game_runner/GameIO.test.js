@@ -149,4 +149,32 @@ describe('GameIO', () => {
             expect(consoleOutput.length).toBe(1);
         });
     });
+
+    describe('waitForEnter', () => {
+        test('should delegate to getUserInput with prompt', async () => {
+            const spy = jest.spyOn(GameIO, 'getUserInput').mockResolvedValue('');
+
+            await GameIO.waitForEnter('Custom prompt');
+
+            expect(spy).toHaveBeenCalledWith('Custom prompt');
+            spy.mockRestore();
+        });
+    });
+
+    describe('showPlayerTransition', () => {
+        test('should render transition screen and clear terminal twice', async () => {
+            const waitSpy = jest.spyOn(GameIO, 'waitForEnter').mockResolvedValue();
+            const clearMock = jest.fn();
+
+            await GameIO.showPlayerTransition('Alice', clearMock);
+
+            expect(clearMock).toHaveBeenCalledTimes(2);
+            expect(waitSpy).toHaveBeenCalledWith('');
+            expect(consoleOutput[0]).toBe('\n' + '='.repeat(60));
+            expect(consoleOutput[1]).toBe("🎮 Alice's Turn - Pass the laptop! 🎮");
+            expect(consoleOutput[2]).toBe('='.repeat(60));
+
+            waitSpy.mockRestore();
+        });
+    });
 });

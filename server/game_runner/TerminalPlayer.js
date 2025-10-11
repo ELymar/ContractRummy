@@ -4,6 +4,7 @@ const GameIO = require('./GameIO');
 const CardSorter = require('./CardSorter');
 const { isValidDupes, isValidSequence } = require('./Utils');
 const DownPile = require('./DownPile');
+const { getContractForRound } = require('./RoundContract');
 
 /**
  * Enhanced player class for terminal-based Contract Rummy gameplay
@@ -39,6 +40,15 @@ class TerminalPlayer {
     draw = (deck, nCards) => {
         this.hand.addCards(deck.draw(nCards));
     }
+    
+    /**
+     * Draw cards from game state deck with reshuffle support
+     * @param {GameState} gameState - Game state containing deck and burn pile
+     * @param {number} nCards - Number of cards to draw
+     */
+    drawFromGameState = (gameState, nCards) => {
+        this.hand.addCards(gameState.drawFromDeck(nCards));
+    }
 
     // String representation of player and their hand
     toString = () => { return `${this.name}: ${this.hand.toString()}`; }
@@ -64,7 +74,7 @@ class TerminalPlayer {
     // Draw a card from the deck
     takeFromDeck = (gameState) => {
         if (!this.tookCard) {
-            const drawnCards = gameState.deck.draw(1);
+            const drawnCards = gameState.drawFromDeck(1);
             const drawnCard = drawnCards[0];
             this.hand.addCard(drawnCard);
             this.tookCard = true;
@@ -149,7 +159,6 @@ class TerminalPlayer {
         // Get contract info for current round
         let contract;
         try {
-            const { getContractForRound } = require('./RoundContract');
             contract = getContractForRound(currentRound);
             console.log(`Contract: ${contract.toString()}\n`);
         } catch (error) {
@@ -570,14 +579,7 @@ class TerminalPlayer {
         console.log('\n=== Sort Hand ===');
         console.log('Current hand:', this.hand.toString());
         
-        const sortMenu = new SimpleMenu('How would you like to sort your hand?');
-        const sortingOptions = CardSorter.getSortingOptions();
-        
-        sortingOptions.forEach(option => {
-            sortMenu.addOption(option.name, () => option.key);
-        });
-        sortMenu.addOption('Cancel (keep current order)', () => 'cancel');
-        
+        const { menu: sortMenu, sortingOptions } = this.buildSortingMenu();
         const choice = await sortMenu.showAndExecute();
         
         if (choice === 'cancel') {
@@ -592,6 +594,20 @@ class TerminalPlayer {
             console.log('\n✅ Hand sorted!');
             console.log('New order:', this.hand.toString());
         }
+    }
+
+    // Build a sorting menu that can be reused across sorting actions
+    buildSortingMenu(title = 'How would you like to sort your hand?') {
+        const sortingOptions = CardSorter.getSortingOptions();
+        const menu = new SimpleMenu(title);
+
+        sortingOptions.forEach(option => {
+            menu.addOption(option.name, () => option.key);
+        });
+
+        menu.addOption('Cancel (keep current order)', () => 'cancel');
+
+        return { menu, sortingOptions };
     }
 }
 
