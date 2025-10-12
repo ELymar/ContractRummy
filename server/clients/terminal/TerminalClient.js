@@ -56,14 +56,40 @@ class TerminalClient {
       case 'GAME_STARTED':
         console.log('\n🎮 Game Started! Contract Rummy begins...');
         break;
+      case 'PLAYER_JOINED':
+        console.log(`${event.payload.name} joined the game`);
+        break;
+      case 'TURN_STARTED':
+        if (this.view && this.view.players) {
+          const currentPlayerName = this.getPlayerName(this.view.players[event.payload.playerIndex]?.id);
+          if (event.payload.playerIndex === this.view.yourPlayerIndex) {
+            console.log(`\n🟢 Your turn!`);
+          } else {
+            console.log(`\n⏳ ${currentPlayerName}'s turn`);
+          }
+        } else {
+          console.log(`\n🎯 Turn started (Player ${event.payload.playerIndex})`);
+        }
+        break;
       case 'CARD_DRAWN':
         if (event.payload.playerId === this.playerId) {
           const source = event.payload.source === 'discard' ? 'discard pile' : 'deck';
-          console.log(`Drew card from ${source}`);
+          // Always show what you drew (you can see your own cards)
+          if (event.payload.cardIds?.[0]) {
+            console.log(`Drew ${event.payload.cardIds[0]} from ${source}`);
+          } else {
+            console.log(`Drew card from ${source}`);
+          }
         } else {
           const playerName = this.getPlayerName(event.payload.playerId);
           const source = event.payload.source === 'discard' ? 'discard pile' : 'deck';
-          console.log(`${playerName} drew from ${source}`);
+          if (event.payload.source === 'discard' && event.payload.cardIds?.[0]) {
+            // Show what other players drew from discard pile (it was face up)
+            console.log(`${playerName} drew ${event.payload.cardIds[0]} from ${source}`);
+          } else {
+            // Don't show what other players drew from deck (it was face down)
+            console.log(`${playerName} drew from ${source}`);
+          }
         }
         break;
       case 'CARD_DISCARDED':
@@ -89,7 +115,41 @@ class TerminalClient {
         break;
       case 'ROUND_ENDED':
         const reason = event.payload.reason === 'opponent_quit' ? ' (opponent quit)' : '';
-        console.log(`\n🏆 ${event.payload.winnerName} wins the round${reason}!`);
+        console.log(`\n🏆 ${event.payload.winnerName} wins Round ${event.payload.roundNumber}${reason}!`);
+        
+        // Show round scores
+        if (event.payload.scores) {
+          console.log('\n📊 Round Scores:');
+          Object.entries(event.payload.scores).forEach(([playerName, score]) => {
+            console.log(`${playerName}: ${score} points`);
+          });
+        }
+        
+        // Show score table if available
+        if (event.payload.scoreTable) {
+          console.log(event.payload.scoreTable);
+        }
+        
+        // Check if game is complete
+        if (event.payload.gameComplete) {
+          console.log('\n🎉 GAME COMPLETE! 🎉');
+          this.gameEnded = true;
+        } else {
+          console.log('\n▶ Proceeding to next round...');
+        }
+        break;
+      case 'MELD_EXTENDED':
+        const extenderName = this.getPlayerName(event.payload.playerId);
+        console.log(`${extenderName} added cards to an existing meld`);
+        break;
+      case 'GAME_ENDED':
+        console.log('\n🏁 Game has ended!');
+        if (event.payload.reason === 'opponent_quit') {
+          console.log('Game ended due to a player quitting.');
+        }
+        if (event.payload.scoreTable) {
+          console.log(event.payload.scoreTable);
+        }
         this.gameEnded = true;
         break;
       case 'ERROR':
@@ -171,20 +231,10 @@ class TerminalClient {
       console.log('  None');
     } else {
       this.view.downPiles.forEach((pile, idx) => {
-        const ownerName = pile.getOwner?.() || pile.owner || 'Unknown';
-        
-        // Handle down pile display
-        let pileDisplay = '';
-        if (pile.toString && typeof pile.toString === 'function') {
-          pileDisplay = pile.toString();
-        } else if (pile.cards && Array.isArray(pile.cards)) {
-          // Manually format the cards if toString doesn't work
-          pileDisplay = pile.cards.map(card => this.fmtCard(card)).join(' ');
-        } else {
-          pileDisplay = 'Unknown pile format';
-        }
-        
-        console.log(`  ${idx + 1}: ${pileDisplay} (${ownerName})`);
+        const ownerName = pile.owner || 'Unknown';
+        const type = pile.type === 'dupes' ? 'set' : (pile.type || 'meld');
+        const pileDisplay = (pile.cards || []).map(card => this.fmtCard(card)).join(' ');
+        console.log(`  ${idx + 1}: ${pileDisplay} — ${type} by ${ownerName}`);
       });
     }
     
@@ -301,6 +351,10 @@ class TerminalClient {
       const drawMenu = new SimpleMenu('Draw a card:');
       const validActions = this.view.validActions || [];
       
+      // Debug: show valid actions
+      console.log(`DEBUG: Valid actions: ${validActions.join(', ')}`);
+      console.log(`DEBUG: Player is down: ${this.view.youAreDown}`);
+      
       if (validActions.includes('DRAW')) {
         drawMenu.addOption('Take from deck', () => 'deck');
       }
@@ -390,7 +444,8 @@ class TerminalClient {
       // Show available cards
       this.displayCardList(usedCardIndices);
       
-      const input = await GameIO.getUserInput(`\nEnter card numbers for meld ${meldNum} (comma-separated, e.g. 1,2,3) or 'cancel' to abort: `);
+      const cancelNumber = this.view.yourHand.length + 1;
+      const input = await GameIO.getUserInput(`\nEnter card numbers for meld ${meldNum} (comma-separated, e.g. 1,2,3) or '${cancelNumber}' to cancel: `);
       
       if (input.toLowerCase() === 'cancel') {
         return null;
@@ -448,6 +503,7 @@ class TerminalClient {
       const used = usedCardIndices.has(idx) ? ' (USED)' : '';
       console.log(`${idx + 1}. ${this.fmtCard(card)}${used}`);
     });
+    console.log(`${this.view.yourHand.length + 1}. Cancel`);
   }
 
   parseCardIndices(input) {
@@ -455,9 +511,15 @@ class TerminalClient {
       return null;
     }
     
+    // Check if it's the numeric cancel option
+    const handSize = this.view.yourHand?.length || 0;
+    const cancelNumber = handSize + 1;
+    if (input.trim() === cancelNumber.toString()) {
+      return null;
+    }
+    
     try {
       const indices = input.split(',').map(s => parseInt(s.trim()) - 1);
-      const handSize = this.view.yourHand?.length || 0;
       
       for (const idx of indices) {
         if (isNaN(idx) || idx < 0 || idx >= handSize) {

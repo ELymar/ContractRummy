@@ -39,7 +39,7 @@ class GameTestConverter {
       description: this.generateStepDescription(logEntry.action),
       action: logEntry.action,
       expectedEvents: logEntry.events.map(e => e.type),
-      expectedState: this.generateStateAssertions(logEntry.gameSnapshot)
+      expectedState: this.extractStateAssertions(logEntry.gameSnapshot)
     }));
 
     return {
@@ -85,9 +85,9 @@ class GameTestConverter {
   }
 
   /**
-   * Generate assertions for game state
+   * Extract state assertions for game state  
    */
-  static generateStateAssertions(gameSnapshot) {
+  static extractStateAssertions(gameSnapshot) {
     const assertions = {};
     
     if (gameSnapshot.currentPlayerIndex !== undefined) {
@@ -141,8 +141,9 @@ class GameTestConverter {
   static generateTestFile(logFilePath, testOutputPath) {
     const testSpec = this.convertLogToTest(logFilePath);
     
-    const testCode = `const GameEngine = require('../core/engine/GameEngine');
-const { ActionType } = require('../core/engine/actions');
+    const testCode = `const GameEngine = require('../../core/engine/GameEngine');
+const { ActionType } = require('../../core/engine/actions');
+const seedrandom = require('seedrandom');
 
 // Auto-generated test from recorded game: ${testSpec.gameId}
 // Original log: ${testSpec.metadata.originalLogFile}
@@ -153,22 +154,13 @@ describe('${testSpec.name}', () => {
   
   beforeEach(() => {
     // Initialize with deterministic seed for reproducibility
-    engine = new GameEngine({ rng: seedRandom('${testSpec.seed}') });
+    engine = new GameEngine({ rng: seedrandom('${testSpec.seed}') });
   });
 
   test('should replay recorded game successfully', async () => {
 ${testSpec.steps.map(step => this.generateTestStep(step)).join('\n')}
   });
-});
-
-// Simple seeded random function for test reproducibility
-function seedRandom(seed) {
-  let x = parseInt(seed, 16) || 1;
-  return function() {
-    x = Math.imul(16807, x) % 2147483647;
-    return (x - 1) / 2147483646;
-  };
-}`;
+});`;
 
     fs.writeFileSync(testOutputPath, testCode);
     console.log(`Generated test file: ${testOutputPath}`);
@@ -201,18 +193,31 @@ function seedRandom(seed) {
   static generateStateAssertions(expectedState) {
     const assertions = [];
     
+    // Ensure expectedState is an object
+    if (!expectedState || typeof expectedState !== 'object') {
+      return '';
+    }
+    
     Object.entries(expectedState).forEach(([key, value]) => {
       if (key === 'players' && Array.isArray(value)) {
         assertions.push(`      expect(engine.state.players).toHaveLength(${value.length});`);
         value.forEach((player, index) => {
           Object.entries(player).forEach(([prop, val]) => {
-            if (typeof val === 'string') {
+            if (prop === 'handSize') {
+              assertions.push(`      expect(engine.state.players[${index}].hand.cards.length).toBe(${val});`);
+            } else if (typeof val === 'string') {
               assertions.push(`      expect(engine.state.players[${index}].${prop}).toBe('${val}');`);
             } else {
               assertions.push(`      expect(engine.state.players[${index}].${prop}).toBe(${val});`);
             }
           });
         });
+      } else if (key === 'deckSize') {
+        assertions.push(`      expect(engine.state.deck.length()).toBe(${value});`);
+      } else if (key === 'burnPileSize') {
+        assertions.push(`      expect(engine.state.burnPile.cards.length).toBe(${value});`);
+      } else if (key === 'downPilesCount') {
+        assertions.push(`      expect(engine.state.downPiles.length).toBe(${value});`);
       } else if (typeof value === 'string') {
         assertions.push(`      expect(engine.state.${key}).toBe('${value}');`);
       } else {

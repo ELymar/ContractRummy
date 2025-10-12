@@ -66,6 +66,24 @@ class Deck {
     length = () => {
         return this.cards.length;
     }
+
+    /**
+     * Deterministically set the deck order for tests.
+     * The top of the deck is the end of the array (draw() pops from the end).
+     * Accepts an array of either Card instances or plain objects { suit, value }.
+     */
+    setCards = (cards) => {
+        if (!Array.isArray(cards)) {
+            throw new Error('setCards expects an array');
+        }
+        this.cards = cards.map(c => {
+            if (c instanceof Card) return c;
+            if (typeof c === 'string') {
+                try { return Card.fromString(c); } catch (_) { return new Card(); }
+            }
+            return new Card(c.suit, c.value);
+        });
+    }
 }
 
 module.exports = Deck; 

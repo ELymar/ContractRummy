@@ -12,16 +12,19 @@ class GameLogger {
     this.startTime = Date.now();
     this.stepCounter = 0;
     this.setupLogger();
+    this.playersLogged = false;
   }
 
   setupLogger() {
-    const logDir = path.join(__dirname, '../../tests/recorded-games');
+    const logDir = path.join(__dirname, '../tests/recorded-games');
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }
 
     const logFile = path.join(logDir, `${this.gameId}.json`);
 
+    console.log(`📝 Creating log file: ${logFile}`);
+    
     // Create Winston logger with multiple transports
     this.logger = winston.createLogger({
       level: 'info',
@@ -79,12 +82,21 @@ class GameLogger {
     const gameTime = now - this.startTime;
     this.stepCounter++;
     
+    // Resolve player index (if possible)
+    let playerIndex = undefined;
+    try {
+      const idx = gameState?.players?.findIndex(p => p.id === action.playerId);
+      playerIndex = idx >= 0 ? idx : undefined;
+    } catch (_) {}
+
     const logData = {
       event: 'game_action',
       step: stepNumber || this.stepCounter,
       gameTime: gameTime,
       actionType: action.type,
       playerId: action.playerId,
+      playerIndex,
+      turnOwnerIndex: gameState?.currentPlayerIndex,
       action: this.sanitizeAction(action),
       events: events.map(e => this.sanitizeEvent(e)),
       gameSnapshot: this.captureRelevantState(gameState),
@@ -94,6 +106,21 @@ class GameLogger {
 
     // Log to both console and file via Winston
     this.logger.info('Game action executed', logData);
+
+    // Log players mapping once when enough players have joined
+    if (!this.playersLogged && gameState?.players?.length >= 2) {
+      this.logPlayersJoined(gameState);
+      this.playersLogged = true;
+    }
+
+    // If this action produced GAME_STARTED, also log an initial snapshot for deterministic replay
+    if (events?.some(e => e.type === 'GAME_STARTED')) {
+      try {
+        this.logInitialSnapshot(gameState);
+      } catch (_) {
+        // best-effort; ignore logging failures
+      }
+    }
   }
 
   /**
@@ -136,6 +163,11 @@ class GameLogger {
       burnPileSize: gameState.burnPile?.cards?.length || 0,
       burnPileDead: gameState.burnPile?.dead || false,
       downPilesCount: gameState.downPiles?.length || 0,
+      downPiles: (gameState.downPiles || []).map(p => ({
+        type: p.type,
+        owner: p.owner || p.getOwner?.(),
+        cards: (p.cards || []).map(c => c.toString?.() || String(c))
+      })),
       players: gameState.players?.map(p => ({
         id: p.id,
         name: p.name,
@@ -197,6 +229,63 @@ class GameLogger {
 
     // Log to both console and file via Winston
     this.logger.info(`Game state: ${reason}`, logData);
+  }
+
+  /**
+   * Log a full initial snapshot including full deck and starting hands
+   * to enable deterministic integration test generation from logs.
+   */
+  logInitialSnapshot(gameState) {
+    const now = Date.now();
+    const gameTime = now - this.startTime;
+    const serializeCard = (c) => c?.toString?.() || String(c);
+
+    const snapshot = {
+      event: 'game_initial_snapshot',
+      gameTime,
+      dealerIndex: gameState.dealerIndex,
+      currentPlayerIndex: gameState.currentPlayerIndex,
+      currentRound: gameState.currentRound,
+      // Deck order from bottom [0] to top [end]; draw() pops from end
+      deck: gameState.deck?.cards?.map(serializeCard) || [],
+      players: gameState.players?.map(p => ({
+        id: p.id,
+        name: p.name,
+        startingHand: p.hand?.cards?.map(serializeCard) || []
+      })) || []
+    };
+
+    this.logger.info('Initial snapshot after dealing', snapshot);
+  }
+
+  /**
+   * Log the order and identities of players as they have joined.
+   */
+  logPlayersJoined(gameState) {
+    const now = Date.now();
+    const gameTime = now - this.startTime;
+    const players = (gameState.players || []).map((p, index) => ({ index, id: p.id, name: p.name }));
+    this.logger.info('Players joined', {
+      event: 'players_joined',
+      gameTime,
+      players
+    });
+  }
+
+  /**
+   * Properly close the logger and ensure all logs are flushed to disk
+   */
+  async close() {
+    return new Promise((resolve) => {
+      if (this.logger) {
+        // Close all transports to ensure file writing is complete
+        this.logger.end(() => {
+          resolve();
+        });
+      } else {
+        resolve();
+      }
+    });
   }
 }
 

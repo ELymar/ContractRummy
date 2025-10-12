@@ -161,27 +161,29 @@ class ScoreKeeper {
      * @returns {string} Formatted score table
      */
     getScoreTable() {
-        const colWidth = 8;
-        const nameWidth = 12;
+        const colWidth = 6;
+        const nameWidth = 10;
+        const totalCols = this.totalRounds + 2; // rounds + name + total
+        const totalWidth = nameWidth + 3 + (colWidth * (this.totalRounds + 1)) + (this.totalRounds + 1);
         
         // Header
-        let table = '\n' + '═'.repeat(nameWidth + 2 + (colWidth * (this.totalRounds + 1)) + 5) + '\n';
+        let table = '\n' + '═'.repeat(totalWidth) + '\n';
         table += '📊 SCORE SUMMARY\n';
-        table += '═'.repeat(nameWidth + 2 + (colWidth * (this.totalRounds + 1)) + 5) + '\n';
+        table += '═'.repeat(totalWidth) + '\n';
         
         // Column headers
         table += 'Player'.padEnd(nameWidth) + ' │';
         for (let round = 1; round <= this.totalRounds; round++) {
-            table += ` R${round}`.padStart(colWidth - 1) + ' │';
+            table += ` R${round}`.padStart(colWidth) + ' │';
         }
         table += ' Total'.padStart(colWidth) + '\n';
         
         // Separator line
         table += '─'.repeat(nameWidth) + '─┼';
         for (let round = 1; round <= this.totalRounds; round++) {
-            table += '─'.repeat(colWidth) + '┼';
+            table += '─'.repeat(colWidth) + '─┼';
         }
-        table += '─'.repeat(colWidth) + '\n';
+        table += '─'.repeat(colWidth) + '─\n';
         
         // Player rows
         this.playerNames.forEach(name => {
@@ -192,16 +194,16 @@ class ScoreKeeper {
                 const roundIndex = round - 1;
                 const score = this.scores[name][roundIndex];
                 const scoreText = score === null ? '-' : score.toString();
-                table += scoreText.padStart(colWidth - 1) + ' │';
+                table += scoreText.padStart(colWidth) + ' │';
             }
             
             // Total score
             const total = this.getTotalScore(name);
-            table += total.toString().padStart(colWidth - 1) + '\n';
+            table += total.toString().padStart(colWidth) + '\n';
         });
         
         // Bottom border
-        table += '═'.repeat(nameWidth + 2 + (colWidth * (this.totalRounds + 1)) + 5) + '\n';
+        table += '═'.repeat(totalWidth) + '\n';
         
         // Current leader
         if (!this.isGameComplete()) {
@@ -215,7 +217,7 @@ class ScoreKeeper {
             }
         }
         
-        table += '═'.repeat(nameWidth + 2 + (colWidth * (this.totalRounds + 1)) + 5) + '\n';
+        table += '═'.repeat(totalWidth) + '\n';
         
         return table;
     }

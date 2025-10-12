@@ -6,6 +6,8 @@ const RoundDealing = require('../../game_runner/RoundDealing');
 const DownPile = require('../../game_runner/DownPile');
 const { isValidDupes, isValidSequence } = require('../../game_runner/Utils');
 const { getContractForRound } = require('../../game_runner/RoundContract');
+const ScoreKeeper = require('../../game_runner/ScoreKeeper');
+const CardScoring = require('../../game_runner/CardScoring');
 const { v4: uuid } = require('uuid');
 
 class GameEngine {
@@ -14,6 +16,7 @@ class GameEngine {
     this.gameId = uuid();
     this.seq = 0;
     this.state.started = false;
+    this.scoreKeeper = null; // Will be initialized when game starts
   }
 
   emit(type, payload = {}) {
@@ -38,7 +41,11 @@ class GameEngine {
       yourHand: you?.hand?.cards ?? [],
       burnTop: s.burnPile?.topCard?.() ?? null,
       burnPileAvailable: s.burnPile?.cards?.length > 0 && !s.burnPile?.dead,
-      downPiles: s.downPiles ?? [],
+      downPiles: (s.downPiles ?? []).map(pile => ({
+        type: pile.type,
+        owner: pile.getOwner?.() || pile.owner || 'Unknown',
+        cards: pile.cards || []
+      })),
       currentPlayerIndex: s.currentPlayerIndex ?? 0,
       dealerIndex: s.dealerIndex ?? 0,
       round: s.currentRound ?? 1,
@@ -79,7 +86,7 @@ class GameEngine {
       validActions.push('DISCARD');
       
       // Can lay down if not already down and have drawn
-      if (!player.isDown && (player.tookCard || this.state.firstTurn)) {
+      if (!player.isDown && player.tookCard) {
         validActions.push('LAY_DOWN');
       }
       
@@ -101,6 +108,58 @@ class GameEngine {
     }
 
     return validActions;
+  }
+
+  // Start the next round: reset deck/piles, rotate dealer, deal new hands, and begin next turn
+  startNextRound() {
+    const evts = [];
+    // If scoreKeeper says game complete, do not start next round
+    if (this.scoreKeeper && this.scoreKeeper.isGameComplete()) {
+      evts.push(this.emit(EventType.GAME_ENDED, { scoreTable: this.scoreKeeper.getScoreTable?.() }));
+      return evts;
+    }
+
+    // Preserve player list (ids/names)
+    const joinedPlayers = this.state.players;
+    // Reinitialize state (resets deck, burn, down piles, etc.)
+    this.state.initialize();
+    // Increment round and rotate dealer
+    this.state.currentRound = (this.state.currentRound ?? 1) + 1;
+    this.state.dealerIndex = ((this.state.dealerIndex ?? 0) + 1) % joinedPlayers.length;
+    this.state.currentPlayerIndex = (this.state.dealerIndex + 1) % joinedPlayers.length;
+    this.state.firstTurn = true;
+    this.state.started = true;
+    
+    // Reattach players with fresh hands/flags
+    this.state.players = joinedPlayers.map(p => ({
+      id: p.id,
+      name: p.name,
+      hand: new Hand(),
+      isDown: false,
+      tookCard: false,
+      discarded: false,
+      isOut: false,
+      quit: false
+    }));
+
+    // Deal for new round
+    try {
+      const deal = RoundDealing.getCardsForRound(this.state.currentRound, this.state.dealerIndex);
+      // Assuming two players for now; extend as needed for more players
+      if (this.state.players[0]) this.state.players[0].hand.addCards(this.state.drawFromDeck(deal.player1Cards));
+      if (this.state.players[1]) this.state.players[1].hand.addCards(this.state.drawFromDeck(deal.player2Cards));
+    } catch (_) {
+      // Fallback: deal 10/11 alternating depending on dealer
+      if (this.state.players.length >= 2) {
+        const nonDealer = (this.state.dealerIndex + 1) % this.state.players.length;
+        this.state.players[this.state.dealerIndex].hand.addCards(this.state.drawFromDeck(10));
+        this.state.players[nonDealer].hand.addCards(this.state.drawFromDeck(11));
+      }
+    }
+
+    evts.push(this.emit(EventType.GAME_STARTED, { round: this.state.currentRound }));
+    evts.push(this.emit(EventType.TURN_STARTED, { playerIndex: this.state.currentPlayerIndex }));
+    return evts;
   }
 
 
@@ -192,6 +251,41 @@ class GameEngine {
     return { valid: true, syncedHand };
   }
 
+  // Handle round end with scoring and progression
+  handleRoundEnd(winnerPlayerId, reason = null) {
+    const winner = this.findPlayer(winnerPlayerId);
+    const evts = [];
+    
+    // Calculate scores for all players
+    const playerHands = {};
+    this.state.players.forEach(player => {
+      playerHands[player.name] = player.hand.cards;
+    });
+    
+    // Record scores in ScoreKeeper
+    if (this.scoreKeeper) {
+      this.scoreKeeper.recordRoundScore(this.state.currentRound, playerHands, winner.name);
+    }
+    
+    // Emit round ended event with scoring
+    const roundScores = {};
+    this.state.players.forEach(player => {
+      roundScores[player.name] = CardScoring.scoreHand(player.hand.cards);
+    });
+    
+    evts.push(this.emit(EventType.ROUND_ENDED, { 
+      winner: winnerPlayerId, 
+      winnerName: winner.name,
+      reason: reason,
+      roundNumber: this.state.currentRound,
+      scores: roundScores,
+      scoreTable: this.scoreKeeper ? this.scoreKeeper.getScoreTable() : null,
+      gameComplete: this.scoreKeeper ? this.scoreKeeper.isGameComplete() : false
+    }));
+    
+    return evts;
+  }
+
   // Validate overall game state consistency
   validateGameStateConsistency() {
     try {
@@ -281,6 +375,11 @@ class GameEngine {
             p1.hand.addCards(this.state.drawFromDeck(11));
           }
           this.state.started = true;
+          
+          // Initialize score keeping
+          const playerNames = this.state.players.map(p => p.name);
+          this.scoreKeeper = new ScoreKeeper(playerNames, 7); // 7 rounds in Contract Rummy
+          
           evts.push(this.emit(EventType.GAME_STARTED, { round: this.state.currentRound }));
           evts.push(this.emit(EventType.TURN_STARTED, { playerIndex: this.state.currentPlayerIndex }));
         }
@@ -388,10 +487,7 @@ class GameEngine {
         // Check for win condition
         if (player.hand.cards.length === 0) {
           player.isOut = true;
-          evts.push(this.emit(EventType.ROUND_ENDED, { 
-            winner: playerId, 
-            winnerName: player.name 
-          }));
+          evts.push(...this.handleRoundEnd(playerId));
         }
         
         evts.push(this.emit(EventType.CARD_DISCARDED, { 
@@ -588,11 +684,7 @@ class GameEngine {
         const activePlayers = this.state.players.filter(p => !p.isOut);
         if (activePlayers.length <= 1) {
           const winner = activePlayers[0];
-          evts.push(this.emit(EventType.ROUND_ENDED, { 
-            winner: winner?.id, 
-            winnerName: winner?.name,
-            reason: 'opponent_quit'
-          }));
+          evts.push(...this.handleRoundEnd(winner?.id, 'opponent_quit'));
         } else {
           // Continue to next player
           const nPlayers = this.state.players.length;
@@ -669,10 +761,7 @@ class GameEngine {
           // Check for win condition
           if (player.hand.cards.length === 0) {
             player.isOut = true;
-            evts.push(this.emit(EventType.ROUND_ENDED, { 
-              winner: playerId, 
-              winnerName: player.name 
-            }));
+            evts.push(...this.handleRoundEnd(playerId));
           }
         } else {
           evts.push(this.emit(EventType.ERROR, { 
