@@ -23,7 +23,6 @@ class GameLogger {
 
     const logFile = path.join(logDir, `${this.gameId}.json`);
 
-    console.log(`📝 Creating log file: ${logFile}`);
     
     // Create Winston logger with multiple transports
     this.logger = winston.createLogger({

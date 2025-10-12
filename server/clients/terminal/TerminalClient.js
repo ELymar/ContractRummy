@@ -351,9 +351,6 @@ class TerminalClient {
       const drawMenu = new SimpleMenu('Draw a card:');
       const validActions = this.view.validActions || [];
       
-      // Debug: show valid actions
-      console.log(`DEBUG: Valid actions: ${validActions.join(', ')}`);
-      console.log(`DEBUG: Player is down: ${this.view.youAreDown}`);
       
       if (validActions.includes('DRAW')) {
         drawMenu.addOption('Take from deck', () => 'deck');

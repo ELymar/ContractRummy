@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "test": "jest",
+    "test:regression": "jest tests/regression/",
     "start": "node ./main.js",
     "play": "node ./main.js",
     "legacy-game": "node ./game_runner/Game.js",
