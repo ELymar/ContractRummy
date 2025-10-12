@@ -3,16 +3,16 @@ const TestBotClient = require('../helpers/TestBotClient');
 
 // Note: This is a harness skeleton. It uses a trivial deck and tiny script to validate the pipeline.
 
-function startServerOnRandomPort(options = {}) {
+async function startServerOnRandomPort(options = {}) {
   const port = 12000 + Math.floor(Math.random() * 1000);
   const server = new GameServer({ port, enableLogging: false, autoJoinReady: false, ...options });
-  server.start();
+  await server.start();
   return { server, port };
 }
 
 describe('WS integration: two bots single-round skeleton', () => {
   test('boots server, connects 2 bots, seeds deck, and runs a couple turns', async () => {
-    const { server, port } = startServerOnRandomPort();
+  const { server, port } = await startServerOnRandomPort();
     const url = `ws://localhost:${port}`;
 
     const p1 = new TestBotClient(url);

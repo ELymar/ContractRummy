@@ -16,12 +16,13 @@ class DownPile {
     }
 
     getCards = () => {
-        //join tostrings
-        return this.cards.map(card => card.toString()).join('');
+        const CardSerializer = require('../shared/CardSerializer');
+        return this.cards.map(card => CardSerializer.serializeForLog(card)).join('');
     }
     
     toString = () => {
-        const cardStrings = this.cards.map(card => card.toString()).join('');
+        const CardSerializer = require('../shared/CardSerializer');
+        const cardStrings = this.cards.map(card => CardSerializer.serializeForLog(card)).join('');
         return `${cardStrings} (${this.type})`;
     }
 

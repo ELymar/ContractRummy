@@ -59,12 +59,18 @@ class GameServer {
             // Broadcast events and current per-player views
             wss.clients.forEach(client => {
               if (client.readyState === WebSocket.OPEN) {
-                const pId = this.players.get(client)?.playerId;
-                client.send(JSON.stringify({
-                  kind: 'events',
-                  events: evts,
-                  snapshot: { view: this.engine.getViewFor(pId) }
-                }));
+                try {
+                  const pId = this.players.get(client)?.playerId;
+                  client.send(JSON.stringify({
+                    kind: 'events',
+                    events: evts,
+                    snapshot: { view: this.engine.getViewFor(pId) }
+                  }));
+                } catch (error) {
+                  console.warn('Failed to send to client:', error.message);
+                  // Remove the client from the players map if it's dead
+                  this.players.delete(client);
+                }
               }
             });
 
@@ -79,12 +85,17 @@ class GameServer {
                 const gameEndedEvent = { type: 'GAME_ENDED', payload: { reason: 'opponent_quit' } };
                 wss.clients.forEach(client => {
                   if (client.readyState === WebSocket.OPEN) {
-                    const pId = this.players.get(client)?.playerId;
-                    client.send(JSON.stringify({
-                      kind: 'events',
-                      events: [gameEndedEvent],
-                      snapshot: { view: this.engine.getViewFor(pId) }
-                    }));
+                    try {
+                      const pId = this.players.get(client)?.playerId;
+                      client.send(JSON.stringify({
+                        kind: 'events',
+                        events: [gameEndedEvent],
+                        snapshot: { view: this.engine.getViewFor(pId) }
+                      }));
+                    } catch (error) {
+                      console.warn('Failed to send game end to client:', error.message);
+                      this.players.delete(client);
+                    }
                   }
                 });
               } else if (!gameComplete) {
@@ -96,19 +107,31 @@ class GameServer {
                 }
                 wss.clients.forEach(client => {
                   if (client.readyState === WebSocket.OPEN) {
-                    const pId = this.players.get(client)?.playerId;
-                    client.send(JSON.stringify({
-                      kind: 'events',
-                      events: nextRoundEvents,
-                      snapshot: { view: this.engine.getViewFor(pId) }
-                    }));
+                    try {
+                      const pId = this.players.get(client)?.playerId;
+                      client.send(JSON.stringify({
+                        kind: 'events',
+                        events: nextRoundEvents,
+                        snapshot: { view: this.engine.getViewFor(pId) }
+                      }));
+                    } catch (error) {
+                      console.warn('Failed to send next round to client:', error.message);
+                      this.players.delete(client);
+                    }
                   }
                 });
               }
             }
           }
         } catch (e) {
-          ws.send(JSON.stringify({ kind: 'error', message: e.message }));
+          if (ws.readyState === WebSocket.OPEN) {
+            try {
+              ws.send(JSON.stringify({ kind: 'error', message: e.message }));
+            } catch (sendError) {
+              console.warn('Failed to send error to client:', sendError.message);
+              this.players.delete(ws);
+            }
+          }
         }
       });
 
@@ -142,12 +165,17 @@ class GameServer {
       if (evts && evts.length > 0) {
         wss.clients.forEach(client => {
           if (client !== ws && client.readyState === WebSocket.OPEN) {
-            const pId = this.players.get(client)?.playerId;
-            client.send(JSON.stringify({
-              kind: 'events',
-              events: evts,
-              snapshot: { view: this.engine.getViewFor(pId) }
-            }));
+            try {
+              const pId = this.players.get(client)?.playerId;
+              client.send(JSON.stringify({
+                kind: 'events',
+                events: evts,
+                snapshot: { view: this.engine.getViewFor(pId) }
+              }));
+            } catch (error) {
+              console.warn('Failed to broadcast to existing client:', error.message);
+              this.players.delete(client);
+            }
           }
         });
       }
@@ -194,22 +222,30 @@ class GameServer {
   startGame() {
     // Apply READY for all known players
     const allPlayers = Array.from(this.players.values());
+    // Collect events from all READY actions so we can broadcast them to clients
+    const aggregatedEvents = [];
     allPlayers.forEach(p => {
       const readyAction = { type: ActionType.READY, playerId: p.playerId };
       const evts = this.engine.apply(readyAction);
+      if (Array.isArray(evts) && evts.length > 0) aggregatedEvents.push(...evts);
       if (this.logger) this.logger.logAction(readyAction, evts, this.engine.state);
     });
 
-    // Broadcast updated views
+    // Broadcast updated views and any events that resulted from READY
     if (this.wss) {
       this.wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
           const pId = this.players.get(client)?.playerId;
-          client.send(JSON.stringify({
-            kind: 'events',
-            events: [],
-            snapshot: { view: this.engine.getViewFor(pId) }
-          }));
+          try {
+            client.send(JSON.stringify({
+              kind: 'events',
+              events: aggregatedEvents,
+              snapshot: { view: this.engine.getViewFor(pId) }
+            }));
+          } catch (error) {
+            console.warn('Failed to send ready events to client:', error.message);
+            this.players.delete(client);
+          }
         }
       });
     }

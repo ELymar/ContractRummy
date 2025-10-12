@@ -13,6 +13,9 @@ class GameLogger {
     this.stepCounter = 0;
     this.setupLogger();
     this.playersLogged = false;
+  // Centralized serializer for card objects (consistent across logs)
+  const CardSerializer = require('../shared/CardSerializer');
+  this.serializeCard = (c) => CardSerializer.serializeForLog(c);
   }
 
   setupLogger() {
@@ -88,6 +91,12 @@ class GameLogger {
       playerIndex = idx >= 0 ? idx : undefined;
     } catch (_) {}
 
+    // Check if action resulted in error or critical events
+    const hasError = events.some(e => e.type === 'ERROR');
+    const hasCriticalEvent = events.some(e => 
+      ['GAME_STARTED', 'MELD_LAID', 'ROUND_ENDED', 'GAME_ENDED'].includes(e.type)
+    );
+
     const logData = {
       event: 'game_action',
       step: stepNumber || this.stepCounter,
@@ -102,6 +111,11 @@ class GameLogger {
       absoluteTimestamp: now,
       isoTimestamp: new Date(now).toISOString()
     };
+
+    // Add full game state for errors and critical events for debugging
+    if (hasError || hasCriticalEvent) {
+      logData.fullGameSnapshot = this.captureFullState(gameState);
+    }
 
     // Log to both console and file via Winston
     this.logger.info('Game action executed', logData);
@@ -165,12 +179,62 @@ class GameLogger {
       downPiles: (gameState.downPiles || []).map(p => ({
         type: p.type,
         owner: p.owner || p.getOwner?.(),
-        cards: (p.cards || []).map(c => c.toString?.() || String(c))
+        cards: (p.cards || []).map(c => this.serializeCard(c))
       })),
       players: gameState.players?.map(p => ({
         id: p.id,
         name: p.name,
         handSize: p.hand?.cards?.length || 0,
+        isDown: p.isDown || false,
+        tookCard: p.tookCard || false,
+        discarded: p.discarded || false,
+        isOut: p.isOut || false
+      })) || []
+    };
+  }
+
+  /**
+   * Capture complete game state including all private information for debugging
+   */
+  captureFullState(gameState) {
+    return {
+      // Basic state
+      currentPlayerIndex: gameState.currentPlayerIndex,
+      dealerIndex: gameState.dealerIndex,
+      currentRound: gameState.currentRound,
+      firstTurn: gameState.firstTurn,
+      
+      // Deck state (full contents)
+      deck: {
+        cards: gameState.deck?.cards?.map(c => this.serializeCard(c)) || [],
+        size: gameState.deck?.length?.() || 0
+      },
+      
+      // Burn pile state (full contents)
+      burnPile: {
+        cards: gameState.burnPile?.cards?.map(c => this.serializeCard(c)) || [],
+        size: gameState.burnPile?.cards?.length || 0,
+        dead: gameState.burnPile?.dead || false,
+        topCard: gameState.burnPile?.cards?.length > 0 
+          ? this.serializeCard(gameState.burnPile.cards[gameState.burnPile.cards.length - 1])
+          : null
+      },
+      
+      // Down piles (all meld information)
+      downPiles: (gameState.downPiles || []).map(p => ({
+        type: p.type,
+        owner: p.owner || p.getOwner?.(),
+        cards: (p.cards || []).map(c => this.serializeCard(c))
+      })),
+      
+      // Players with full hand information
+      players: gameState.players?.map(p => ({
+        id: p.id,
+        name: p.name,
+        hand: {
+          cards: p.hand?.cards?.map(c => this.serializeCard(c)) || [],
+          size: p.hand?.cards?.length || 0
+        },
         isDown: p.isDown || false,
         tookCard: p.tookCard || false,
         discarded: p.discarded || false,
@@ -194,8 +258,9 @@ class GameLogger {
       isoEndTime: new Date(endTime).toISOString()
     });
     
-    // Close the logger to ensure all logs are flushed
-    this.logger.end();
+    // Close the logger transports to ensure all logs are flushed
+    // Use the async close helper (best-effort; don't await here)
+    this.close().catch(() => {});
   }
 
   /**
@@ -231,13 +296,34 @@ class GameLogger {
   }
 
   /**
+   * Log full game state snapshot including all private information
+   * Use sparingly as this includes sensitive data like player hands
+   */
+  logFullGameState(reason, gameState) {
+    const now = Date.now();
+    const gameTime = now - this.startTime;
+    
+    const logData = {
+      event: 'full_game_state',
+      reason: reason,
+      gameTime: gameTime,
+      fullGameSnapshot: this.captureFullState(gameState),
+      absoluteTimestamp: now,
+      isoTimestamp: new Date(now).toISOString()
+    };
+
+    // Log to file only (not console to avoid exposing private info)
+    this.logger.info(`Full game state: ${reason}`, logData);
+  }
+
+  /**
    * Log a full initial snapshot including full deck and starting hands
    * to enable deterministic integration test generation from logs.
    */
   logInitialSnapshot(gameState) {
     const now = Date.now();
     const gameTime = now - this.startTime;
-    const serializeCard = (c) => c?.toString?.() || String(c);
+    // reuse serializer
 
     const snapshot = {
       event: 'game_initial_snapshot',
@@ -246,11 +332,11 @@ class GameLogger {
       currentPlayerIndex: gameState.currentPlayerIndex,
       currentRound: gameState.currentRound,
       // Deck order from bottom [0] to top [end]; draw() pops from end
-      deck: gameState.deck?.cards?.map(serializeCard) || [],
+      deck: gameState.deck?.cards?.map(c => this.serializeCard(c)) || [],
       players: gameState.players?.map(p => ({
         id: p.id,
         name: p.name,
-        startingHand: p.hand?.cards?.map(serializeCard) || []
+        startingHand: p.hand?.cards?.map(c => this.serializeCard(c)) || []
       })) || []
     };
 
@@ -275,15 +361,25 @@ class GameLogger {
    * Properly close the logger and ensure all logs are flushed to disk
    */
   async close() {
+    if (!this.logger) return Promise.resolve();
+
+    // Close each transport gracefully. Winston transports expose `close()`.
+    const transports = this.logger.transports || [];
     return new Promise((resolve) => {
-      if (this.logger) {
-        // Close all transports to ensure file writing is complete
-        this.logger.end(() => {
-          resolve();
+      if (transports.length === 0) return resolve();
+      let pending = transports.length;
+      transports.forEach((t) => {
+        try {
+          if (typeof t.close === 'function') t.close();
+        } catch (_) {
+          // ignore
+        }
+        // Give Node a tick to let underlying streams flush
+        setImmediate(() => {
+          pending -= 1;
+          if (pending === 0) resolve();
         });
-      } else {
-        resolve();
-      }
+      });
     });
   }
 }

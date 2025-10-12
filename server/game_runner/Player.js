@@ -57,6 +57,7 @@ class Player {
     showDiscardOptions = (gameState) => {
         let menu = new Menu();
         this.hand.cards.forEach((card, idx) => {
+            // keep UI label as human-facing; use toString for terminal readability
             menu.addOption(`${card.toString()}`, () => { this.discard(gameState, idx) });
         });
         menu.showOptionsAndProcessResponse(); 
@@ -64,13 +65,14 @@ class Player {
 
     discard = (gameState, idx) => {
         if (idx > -1 && idx < this.hand.length()) {
-            console.log(`Discarding ${this.hand.cards[idx].toString()}`);
+            const CardSerializer = require('../shared/CardSerializer');
+            console.log(`Discarding ${CardSerializer.serializeForLog(this.hand.cards[idx])}`);
             gameState.burnPile.addCard(this.hand.cards[idx]);
             this.hand.cards.splice(idx, 1);
             this.discarded = true;
             console.log(`Your hand: ${this.hand.toString()}`);
             if (gameState.burnPile.cards.length > 0) {
-                console.log(`Burn pile top card: ${gameState.burnPile.topCard().toString()}`);
+                console.log(`Burn pile top card: ${CardSerializer.serializeForLog(gameState.burnPile.topCard())}`);
             }
         }
     }
@@ -86,7 +88,8 @@ class Player {
         if (!this.isDown && !this.discarded && this.tookCard) {
             let filteredCards = this.hand.cards.filter((card, idx) => { return list_of_indices.includes(idx) });
             if (!isValidDupes(filteredCards)) {
-                console.log("Unable to go down with this sequence: " + filteredCards.map((card) => { return card.toString() }).join(', '));
+                const CardSerializer = require('../shared/CardSerializer');
+                console.log("Unable to go down with this sequence: " + filteredCards.map((card) => { return CardSerializer.serializeForLog(card) }).join(', '));
                 return false;
             }
             // remove the cards from hand and place in new down pile
@@ -99,7 +102,8 @@ class Player {
             }
             gameState.downPiles.push(downPile);
             this.isDown = true;
-            console.log(`Successfully went down with: ${filteredCards.map(card => card.toString()).join(', ')}`);
+            const CardSerializer = require('../shared/CardSerializer');
+            console.log(`Successfully went down with: ${filteredCards.map(card => CardSerializer.serializeForLog(card)).join(', ')}`);
             return true;
         }
         return false;

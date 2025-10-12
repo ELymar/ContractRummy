@@ -3,13 +3,15 @@ const Player = require('./Player');
 const BurnPile = require('./BurnPile');
 
 class GameState {
-    constructor() {
+    constructor(rng = Math.random) {
+        this.rng = rng;
         this.initialize();
     }
 
     initialize = (players) => {
         // Use 1 deck with 4 jokers for 2-player game
-        this.deck = new Deck(4, 1);
+        // Preserve RNG if it was set in constructor
+        this.deck = new Deck(4, 1, this.rng);
         this.players = [];
         this.downPiles = [];
         this.burnPile = new BurnPile();

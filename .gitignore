@@ -1,9 +1,13 @@
 node_modules
 
-# Recorded game logs - don't commit to avoid repo bloat
+# Auto-generated logs and tests - don't commit to avoid repo bloat
 server/tests/recorded-games/
 server/tests/generated/
 tests/recorded-games/*.json
 
+# BUT DO commit curated regression tests
+!server/tests/regression/
+
 # Log files
 *.log
+.vscode

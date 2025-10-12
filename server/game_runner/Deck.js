@@ -2,7 +2,8 @@ const Card = require('./Card');
 const { SUITS, VALUES } = require('./Constants');
 
 class Deck {
-    constructor(nJokers, nDecks = 1) {
+    constructor(nJokers, nDecks = 1, rng = Math.random) {
+        this.rng = rng;
         this.reset(nJokers, nDecks);
     }
 
@@ -11,7 +12,7 @@ class Deck {
         let m = cards.length, i;
 
         while (m) {
-            i = Math.floor(Math.random() * m--);
+            i = Math.floor(this.rng() * m--);
             [cards[m], cards[i]] = [cards[i], cards[m]];
         }
     }

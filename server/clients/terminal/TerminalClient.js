@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const SimpleMenu = require('../../game_runner/SimpleMenu');
 const GameIO = require('../../game_runner/GameIO');
 const { ActionType } = require('../../core/engine/actions');
+const DisplayUtils = require('../../shared/DisplayUtils');
 
 class TerminalClient {
   constructor(url = 'ws://localhost:8080') {
@@ -12,6 +13,7 @@ class TerminalClient {
     this.awaitingInput = false;
     this.pendingUpdateResolvers = [];
     this.gameEnded = false;
+    this.roundEnded = false;
   }
 
   async connect() {
@@ -60,6 +62,11 @@ class TerminalClient {
         console.log(`${event.payload.name} joined the game`);
         break;
       case 'TURN_STARTED':
+        // Reset round ended flag when a new turn starts (indicates new round has begun)
+        if (this.roundEnded) {
+          this.roundEnded = false;
+        }
+        
         if (this.view && this.view.players) {
           const currentPlayerName = this.getPlayerName(this.view.players[event.payload.playerIndex]?.id);
           if (event.payload.playerIndex === this.view.yourPlayerIndex) {
@@ -102,7 +109,13 @@ class TerminalClient {
         break;
       case 'MELD_LAID':
         const playerName = this.getPlayerName(event.payload.playerId);
+        const melds = event.payload.melds || [];
+        
         console.log(`🎉 ${playerName} went down with melds!`);
+        melds.forEach((meld, index) => {
+          const meldDisplay = DisplayUtils.formatPile(meld);
+          console.log(`   ${index + 1}. ${meldDisplay}`);
+        });
         break;
       case 'PLAYER_QUIT':
         if (event.payload.playerId === this.playerId) {
@@ -114,6 +127,7 @@ class TerminalClient {
         }
         break;
       case 'ROUND_ENDED':
+        this.roundEnded = true; // Mark round as ended to prevent further commands
         const reason = event.payload.reason === 'opponent_quit' ? ' (opponent quit)' : '';
         console.log(`\n🏆 ${event.payload.winnerName} wins Round ${event.payload.roundNumber}${reason}!`);
         
@@ -136,6 +150,7 @@ class TerminalClient {
           this.gameEnded = true;
         } else {
           console.log('\n▶ Proceeding to next round...');
+          // DO NOT reset roundEnded flag here - wait for TURN_STARTED to indicate new round
         }
         break;
       case 'MELD_EXTENDED':
@@ -167,7 +182,18 @@ class TerminalClient {
   }
 
   sendCommand(type, payload = {}) {
-    this.ws.send(JSON.stringify({ kind: 'command', command: { type, playerId: this.playerId, payload } }));
+    if (this.gameEnded || this.roundEnded || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.log(`Cannot send command ${type}: ${this.gameEnded ? 'game ended' : this.roundEnded ? 'round ended' : 'connection closed'}`);
+      return false;
+    }
+    
+    try {
+      this.ws.send(JSON.stringify({ kind: 'command', command: { type, playerId: this.playerId, payload } }));
+      return true;
+    } catch (error) {
+      console.warn(`Failed to send command ${type}:`, error.message);
+      return false;
+    }
   }
 
   fmtCard(c) {
@@ -233,7 +259,7 @@ class TerminalClient {
       this.view.downPiles.forEach((pile, idx) => {
         const ownerName = pile.owner || 'Unknown';
         const type = pile.type === 'dupes' ? 'set' : (pile.type || 'meld');
-        const pileDisplay = (pile.cards || []).map(card => this.fmtCard(card)).join(' ');
+        const pileDisplay = DisplayUtils.formatCards(pile.cards || []);
         console.log(`  ${idx + 1}: ${pileDisplay} — ${type} by ${ownerName}`);
       });
     }
@@ -338,8 +364,10 @@ class TerminalClient {
         }
       }
 
-      // End turn
-      this.sendCommand(ActionType.END_TURN);
+      // End turn (only if game/round hasn't ended)
+      if (!this.gameEnded && !this.roundEnded) {
+        this.sendCommand(ActionType.END_TURN);
+      }
       
     } finally {
       this.awaitingInput = false;
@@ -560,13 +588,14 @@ class TerminalClient {
     // Show available melds
     console.log('Available melds on table:');
     this.view.downPiles.forEach((pile, idx) => {
-      console.log(`${idx + 1}. ${pile.toString?.()} (${pile.getOwner?.() || pile.owner})`);
+      const owner = pile.getOwner?.() || pile.owner;
+      console.log(DisplayUtils.formatMeldSummary(pile, idx, owner));
     });
     
     // Show player's hand
     console.log('\nYour hand:');
     this.view.yourHand.forEach((card, idx) => {
-      console.log(`${idx + 1}. ${this.fmtCard(card)}`);
+      console.log(`${idx + 1}. ${DisplayUtils.formatCard(card)}`);
     });
     
     // Select which meld to add to

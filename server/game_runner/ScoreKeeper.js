@@ -246,9 +246,10 @@ class ScoreKeeper {
             summary += `${playerName}: ${cardsLeft} cards remaining = ${score} points\n`;
             
             if (playerName !== details.winner && details.playerHands[playerName]) {
+                const CardSerializer = require('../shared/CardSerializer');
                 const hand = details.playerHands[playerName];
                 if (hand.length > 0) {
-                    summary += `  Cards: ${hand.map(card => card.toString()).join('')}\n`;
+                    summary += `  Cards: ${hand.map(card => CardSerializer.serializeForLog(card)).join('')}\n`;
                 }
             }
         });

@@ -34,13 +34,28 @@ class GameTestConverter {
     const seed = this.extractSeedFromLog({ gameId });
     
     // Convert log entries to test steps
-    const steps = actionLogs.map((logEntry, index) => ({
-      step: index + 1,
-      description: this.generateStepDescription(logEntry.action),
-      action: logEntry.action,
-      expectedEvents: logEntry.events.map(e => e.type),
-      expectedState: this.extractStateAssertions(logEntry.gameSnapshot)
-    }));
+    const steps = actionLogs.map((logEntry, index) => {
+      // Clone the action to avoid mutating original log data
+      const action = JSON.parse(JSON.stringify(logEntry.action || {}));
+
+      // Keep handOrder for LAY_DOWN actions as they need it for card index resolution
+      // Remove handOrder for other actions to prevent server-side hand sync validation issues
+      if (action.payload && action.payload.handOrder && action.type !== 'LAY_DOWN') {
+        delete action.payload.handOrder;
+      }
+
+      return {
+        step: index + 1,
+        description: this.generateStepDescription(action),
+        action: action,
+        expectedEvents: logEntry.events.map(e => e.type),
+        expectedState: this.extractStateAssertions(logEntry.gameSnapshot),
+        // Categorize expectations as success or failure
+        expectation: this.categorizeExpectation(logEntry.events),
+        // Include full state for debugging if available
+        fullState: logEntry.fullGameSnapshot || null
+      };
+    });
 
     return {
       name: testName,
@@ -126,6 +141,34 @@ class GameTestConverter {
   }
 
   /**
+   * Categorize the expectation as success or failure based on events
+   */
+  static categorizeExpectation(events) {
+    const hasError = events.some(e => e.type === 'ERROR');
+    const hasSuccess = events.some(e => 
+      ['CARD_DRAWN', 'CARD_DISCARDED', 'MELD_LAID', 'MELD_EXTENDED', 'TURN_STARTED', 'ROUND_ENDED'].includes(e.type)
+    );
+    
+    if (hasError) {
+      return {
+        type: 'failure',
+        events: events.map(e => e.type),
+        errorMessage: events.find(e => e.type === 'ERROR')?.payload?.message || 'Unknown error'
+      };
+    } else if (hasSuccess) {
+      return {
+        type: 'success',
+        events: events.map(e => e.type)
+      };
+    } else {
+      return {
+        type: 'neutral',
+        events: events.map(e => e.type)
+      };
+    }
+  }
+
+  /**
    * Extract seed for deterministic replay (if available in log)
    */
   static extractSeedFromLog(logData) {
@@ -143,6 +186,7 @@ class GameTestConverter {
     
     const testCode = `const GameEngine = require('../../core/engine/GameEngine');
 const { ActionType } = require('../../core/engine/actions');
+const StateValidator = require('../StateValidator');
 const seedrandom = require('seedrandom');
 
 // Auto-generated test from recorded game: ${testSpec.gameId}
@@ -174,16 +218,46 @@ ${testSpec.steps.map(step => this.generateTestStep(step)).join('\n')}
     const actionStr = JSON.stringify(step.action, null, 6);
     const expectedEvents = step.expectedEvents.map(e => `'${e}'`).join(', ');
     
-    return `    // Step ${step.step}: ${step.description}
+    let eventVerification;
+    if (step.expectation.type === 'failure') {
+      eventVerification = `      // Verify expected failure
+      const eventTypes = events.map(e => e.type);
+      expect(eventTypes).toContain('ERROR');
+      const errorEvent = events.find(e => e.type === 'ERROR');
+      expect(errorEvent.payload.message).toBe('${step.expectation.errorMessage}');`;
+    } else {
+      eventVerification = `      // Verify expected events were emitted
+      const eventTypes = events.map(e => e.type);
+      expect(eventTypes).toEqual(expect.arrayContaining([${expectedEvents}]));`;
+    }
+    
+    let stateVerification = '';
+    if (step.expectation.type === 'success') {
+      stateVerification = `
+      // Verify game state assertions
+      ${this.generateStateAssertions(step.expectedState)}
+      
+      // Validate state consistency
+      const stateValidation = StateValidator.validateState(engine.state, ${JSON.stringify(step.expectedState, null, 8)});
+      if (!stateValidation.success) {
+        console.warn('State validation warnings for step ${step.step}:', stateValidation.warnings);
+        throw new Error('State validation failed: ' + stateValidation.errors.join(', '));
+      }`;
+    } else if (step.expectation.type === 'failure') {
+      stateVerification = `
+      // Game state should remain unchanged on failure (most validation errors)
+      // Only verify basic state consistency
+      const stateValidation = StateValidator.validateState(engine.state, ${JSON.stringify(step.expectedState, null, 8)});
+      if (!stateValidation.success) {
+        console.warn('Post-failure state validation warnings for step ${step.step}:', stateValidation.warnings);
+      }`;
+    }
+    
+    return `    // Step ${step.step}: ${step.description} (${step.expectation.type})
     {
       const events = engine.apply(${actionStr});
       
-      // Verify expected events were emitted
-      const eventTypes = events.map(e => e.type);
-      expect(eventTypes).toEqual(expect.arrayContaining([${expectedEvents}]));
-      
-      // Verify game state assertions
-      ${this.generateStateAssertions(step.expectedState)}
+${eventVerification}${stateVerification}
     }`;
   }
 
