@@ -157,6 +157,9 @@ class TerminalClient {
         const extenderName = this.getPlayerName(event.payload.playerId);
         console.log(`${extenderName} added cards to an existing meld`);
         break;
+      case 'DECK_RESHUFFLED':
+        console.log(`🔄 Deck was reshuffled! ${event.payload.cardsReshuffled} cards were moved from discard pile to deck.`);
+        break;
       case 'GAME_ENDED':
         console.log('\n🏁 Game has ended!');
         if (event.payload.reason === 'opponent_quit') {
@@ -585,42 +588,40 @@ class TerminalClient {
   async selectCardToAddToMeld() {
     console.log('\n=== Add to Existing Melds ===');
     
-    // Show available melds
+    // Show available melds and create meld selection menu
     console.log('Available melds on table:');
     this.view.downPiles.forEach((pile, idx) => {
       const owner = pile.getOwner?.() || pile.owner;
       console.log(DisplayUtils.formatMeldSummary(pile, idx, owner));
     });
     
-    // Show player's hand
+    const meldMenu = new SimpleMenu('\nSelect meld number to add to:');
+    this.view.downPiles.forEach((pile, idx) => {
+      const owner = pile.getOwner?.() || pile.owner;
+      const meldSummary = DisplayUtils.formatMeldSummary(pile, idx, owner);
+      meldMenu.addOption(meldSummary, () => idx);
+    });
+    meldMenu.addOption('Cancel', () => 'cancel');
+    
+    const meldIndex = await meldMenu.showAndExecute();
+    if (meldIndex === 'cancel') {
+      return false;
+    }
+    
+    // Show player's hand and create card selection menu
     console.log('\nYour hand:');
     this.view.yourHand.forEach((card, idx) => {
       console.log(`${idx + 1}. ${DisplayUtils.formatCard(card)}`);
     });
     
-    // Select which meld to add to
-    const meldInput = await GameIO.getUserInput('\nSelect meld number to add to (or "cancel"): ');
+    const cardMenu = new SimpleMenu('\nSelect card number to add:');
+    this.view.yourHand.forEach((card, idx) => {
+      cardMenu.addOption(`${DisplayUtils.formatCard(card)}`, () => idx);
+    });
+    cardMenu.addOption('Cancel', () => 'cancel');
     
-    if (meldInput.toLowerCase() === 'cancel') {
-      return false;
-    }
-    
-    const meldIndex = parseInt(meldInput) - 1;
-    if (isNaN(meldIndex) || meldIndex < 0 || meldIndex >= this.view.downPiles.length) {
-      console.log('Invalid meld number.');
-      return false;
-    }
-    
-    // Select which card to add
-    const cardInput = await GameIO.getUserInput('\nSelect card number to add (or "cancel"): ');
-    
-    if (cardInput.toLowerCase() === 'cancel') {
-      return false;
-    }
-    
-    const cardIndex = parseInt(cardInput) - 1;
-    if (isNaN(cardIndex) || cardIndex < 0 || cardIndex >= this.view.yourHand.length) {
-      console.log('Invalid card number.');
+    const cardIndex = await cardMenu.showAndExecute();
+    if (cardIndex === 'cancel') {
       return false;
     }
     

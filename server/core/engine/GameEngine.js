@@ -18,11 +18,24 @@ class GameEngine {
     this.seq = 0;
     this.state.started = false;
     this.scoreKeeper = null; // Will be initialized when game starts
+    this.pendingStateEvents = []; // Collect events from GameState during action processing
+    
+    // Listen to GameState events and collect them
+    this.state.on('deck-reshuffled', (data) => {
+      this.pendingStateEvents.push(this.emit(EventType.DECK_RESHUFFLED, data));
+    });
   }
 
   emit(type, payload = {}) {
     const evt = { type, payload, seq: ++this.seq, ts: Date.now() };
     return evt;
+  }
+
+  // Helper to collect all events including pendingStateEvents
+  collectEvents(events) {
+    const allEvents = [...events, ...this.pendingStateEvents];
+    this.pendingStateEvents = []; // Clear for next action
+    return allEvents;
   }
 
   getViewFor(playerId) {
@@ -498,7 +511,10 @@ class GameEngine {
         }));
 
         // Validate game state consistency after card movement (development only)
-        if (process.env.NODE_ENV !== 'test') {
+        // Skip validation if the discard triggered a round end, as the state will be inconsistent
+        // until the next round starts
+        const triggeredRoundEnd = evts.some(e => e.type === 'ROUND_ENDED');
+        if (process.env.NODE_ENV !== 'test' && !triggeredRoundEnd) {
           const stateCheck = this.validateGameStateConsistency();
           if (stateCheck.error) {
             console.error('Game state inconsistency after discard:', stateCheck.error);
@@ -782,7 +798,7 @@ class GameEngine {
         evts.push(this.emit(EventType.ERROR, { message: `Unsupported action: ${type}` }));
     }
 
-    return evts;
+    return this.collectEvents(evts);
   }
 }
 

@@ -1,9 +1,11 @@
+const EventEmitter = require('events');
 const Deck = require('./Deck');
 const Player = require('./Player');
 const BurnPile = require('./BurnPile');
 
-class GameState {
+class GameState extends EventEmitter {
     constructor(rng = Math.random) {
+        super();
         this.rng = rng;
         this.initialize();
     }
@@ -36,6 +38,9 @@ class GameState {
                 const cardsFromBurnPile = this.burnPile.getAllExceptTop();
                 this.deck.addCards(cardsFromBurnPile);
                 console.log(`✅ Reshuffled ${cardsFromBurnPile.length} cards from burn pile into deck`);
+                
+                // Emit reshuffle event
+                this.emit('deck-reshuffled', { cardsReshuffled: cardsFromBurnPile.length });
             }
             
             // Check again after potential reshuffle

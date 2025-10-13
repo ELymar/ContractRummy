@@ -99,27 +99,54 @@ class GameServer {
                   }
                 });
               } else if (!gameComplete) {
-                const nextRoundEvents = this.engine.startNextRound();
-                // Log and broadcast next round start
-                if (this.logger) {
-                  this.logger.logEvent('next_round', { round: this.engine.state.currentRound });
-                  this.logger.logGameState('round_started', this.engine.state);
-                }
-                wss.clients.forEach(client => {
-                  if (client.readyState === WebSocket.OPEN) {
-                    try {
-                      const pId = this.players.get(client)?.playerId;
-                      client.send(JSON.stringify({
-                        kind: 'events',
-                        events: nextRoundEvents,
-                        snapshot: { view: this.engine.getViewFor(pId) }
-                      }));
-                    } catch (error) {
-                      console.warn('Failed to send next round to client:', error.message);
-                      this.players.delete(client);
-                    }
+                try {
+                  console.log('Starting next round...'); // Debug log
+                  const nextRoundEvents = this.engine.startNextRound();
+                  console.log('Next round events:', nextRoundEvents.map(e => e.type)); // Debug log
+                  
+                  // Log and broadcast next round start
+                  if (this.logger) {
+                    this.logger.logEvent('next_round', { round: this.engine.state.currentRound });
+                    this.logger.logGameState('round_started', this.engine.state);
                   }
-                });
+                  
+                  wss.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                      try {
+                        const pId = this.players.get(client)?.playerId;
+                        client.send(JSON.stringify({
+                          kind: 'events',
+                          events: nextRoundEvents,
+                          snapshot: { view: this.engine.getViewFor(pId) }
+                        }));
+                      } catch (error) {
+                        console.warn('Failed to send next round to client:', error.message);
+                        this.players.delete(client);
+                      }
+                    }
+                  });
+                  
+                  console.log('Next round successfully started. Current round:', this.engine.state.currentRound); // Debug log
+                } catch (error) {
+                  console.error('Failed to start next round:', error);
+                  // Send error to all clients and end the game session
+                  const gameEndedEvent = { type: 'GAME_ENDED', payload: { reason: 'server_error', error: error.message } };
+                  wss.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                      try {
+                        const pId = this.players.get(client)?.playerId;
+                        client.send(JSON.stringify({
+                          kind: 'events',
+                          events: [gameEndedEvent],
+                          snapshot: { view: this.engine.getViewFor(pId) }
+                        }));
+                      } catch (sendError) {
+                        console.warn('Failed to send error to client:', sendError.message);
+                        this.players.delete(client);
+                      }
+                    }
+                  });
+                }
               }
             }
           }

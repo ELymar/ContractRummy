@@ -261,45 +261,41 @@ class TerminalPlayer {
     async selectCardToAddToMeld(gameState) {
         console.log('\n=== Add to Existing Melds ===');
         
-        // Show available melds
+        // Show available melds and create meld selection menu
         console.log('Available melds on table:');
         gameState.downPiles.forEach((pile, idx) => {
             console.log(`${idx + 1}. ${pile.toString()} (${pile.getOwner()})`);
         });
         
-        // Show player's hand
-        console.log('\nYour hand:');
-        this.hand.cards.forEach((card, idx) => {
-            console.log(`${idx + 1}. ${card.toString()}`);
+        const meldMenu = new SimpleMenu('\nSelect meld number to add to:');
+        gameState.downPiles.forEach((pile, idx) => {
+            meldMenu.addOption(`${pile.toString()} (${pile.getOwner()})`, () => idx);
         });
+        meldMenu.addOption('Cancel', () => 'cancel');
         
-        // Select which meld to add to
-        const meldInput = await this.getUserInput('\nSelect meld number to add to (or \"cancel\"): ');
-        
-        if (meldInput.toLowerCase() === 'cancel') {
+        const meldIndex = await meldMenu.showAndExecute();
+        if (meldIndex === 'cancel') {
             console.log('Adding to meld cancelled.');
-            return false;
-        }
-        
-        const meldIndex = parseInt(meldInput) - 1;
-        if (isNaN(meldIndex) || meldIndex < 0 || meldIndex >= gameState.downPiles.length) {
-            console.log('Invalid meld number.');
             return false;
         }
         
         const selectedMeld = gameState.downPiles[meldIndex];
         
-        // Select which card to add
-        const cardInput = await this.getUserInput('\nSelect card number to add (or \"cancel\"): ');
+        // Show player's hand and create card selection menu
+        console.log('\nYour hand:');
+        this.hand.cards.forEach((card, idx) => {
+            console.log(`${idx + 1}. ${card.toString()}`);
+        });
         
-        if (cardInput.toLowerCase() === 'cancel') {
+        const cardMenu = new SimpleMenu('\nSelect card number to add:');
+        this.hand.cards.forEach((card, idx) => {
+            cardMenu.addOption(`${card.toString()}`, () => idx);
+        });
+        cardMenu.addOption('Cancel', () => 'cancel');
+        
+        const cardIndex = await cardMenu.showAndExecute();
+        if (cardIndex === 'cancel') {
             console.log('Adding to meld cancelled.');
-            return false;
-        }
-        
-        const cardIndex = parseInt(cardInput) - 1;
-        if (isNaN(cardIndex) || cardIndex < 0 || cardIndex >= this.hand.length()) {
-            console.log('Invalid card number.');
             return false;
         }
         
