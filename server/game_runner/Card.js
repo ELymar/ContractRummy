@@ -1,14 +1,19 @@
 const chalk = require('chalk');
+const crypto = require('crypto');
 const {
     VALUE_TO_EMOJI_MAP,
     SUIT_TO_EMOJI_MAP,
     EMOJI_TO_VALUE_MAP,
-    EMOJI_TO_SUIT_MAP
+    EMOJI_TO_SUIT_MAP,
+    SUITS,
+    VALUES
 } = require('./Constants.js');
+
 class Card{
-    constructor(suit, value){
-        this.suit = suit || 'Joker';
-        this.value = value || 'Joker'; 
+    constructor(suit, value, uuid = null){
+        this.suit = suit || SUITS[4]; // 'Joker' is at index 4 in SUITS
+        this.value = value || SUITS[4]; // Use 'Joker' from SUITS for both suit and value
+        this.uuid = uuid || crypto.randomUUID();
     }
 
     toString = (colors=false) => {
