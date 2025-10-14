@@ -2,8 +2,6 @@
  * Card sorting utilities for organizing hands
  */
 
-const {VALUES, SUITS} = require('../../shared/Constants');
-
 class CardSorter {
   /**
    * Get numeric value for a card rank for sorting

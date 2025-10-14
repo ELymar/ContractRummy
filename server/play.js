@@ -27,7 +27,7 @@ function parseArgs() {
         ) {
           throw new Error('Invalid format');
         }
-      } catch (error) {
+      } catch {
         console.error('❌ Invalid scores format. Use: [[p1_r1,p2_r1],[p1_r2,p2_r2],...]');
         console.error('Example: [[5,0],[10,0],[0,5]]');
         process.exit(1);

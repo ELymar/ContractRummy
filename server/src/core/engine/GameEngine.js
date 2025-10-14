@@ -3,10 +3,6 @@ const {EventType} = require('./events');
 const GameState = require('../domain/GameState');
 const Hand = require('../domain/Hand');
 const RoundDealing = require('../rules/RoundDealing');
-const DownPile = require('../domain/DownPile');
-const {isValidDupes, isValidSequence} = require('../utils/Utils');
-const {getContractForRound} = require('../rules/RoundContract');
-const ScoreKeeper = require('../../shared/ScoreKeeper');
 const CardScoring = require('../rules/CardScoring');
 const {v4: uuid} = require('uuid');
 
@@ -184,11 +180,13 @@ class GameEngine {
     try {
       const deal = RoundDealing.getCardsForRound(this.state.currentRound, this.state.dealerIndex);
       // Assuming two players for now; extend as needed for more players
-      if (this.state.players[0])
+      if (this.state.players[0]) {
         this.state.players[0].hand.addCards(this.state.drawFromDeck(deal.player1Cards));
-      if (this.state.players[1])
+      }
+      if (this.state.players[1]) {
         this.state.players[1].hand.addCards(this.state.drawFromDeck(deal.player2Cards));
-    } catch (_) {
+      }
+    } catch {
       // Fallback: deal 10/11 alternating depending on dealer
       if (this.state.players.length >= 2) {
         const nonDealer = (this.state.dealerIndex + 1) % this.state.players.length;

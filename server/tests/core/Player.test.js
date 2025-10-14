@@ -1,4 +1,3 @@
-const Deck = require('../../src/core/domain/Deck.js');
 const Player = require('../../src/core/domain/Player.js');
 const Card = require('../../src/core/domain/Card.js');
 

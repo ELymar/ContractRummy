@@ -33,6 +33,14 @@ module.exports = [
       'max-len': 'off', // Let Prettier handle line length
       'require-jsdoc': 'off', // We'll add docs gradually
       'valid-jsdoc': 'off',
+      // Disable conflicting rules with Prettier
+      indent: 'off',
+      'comma-dangle': 'off',
+      'object-curly-spacing': 'off',
+      'arrow-parens': 'off',
+      'quote-props': 'off',
+      'operator-linebreak': 'off',
+      quotes: 'off',
       // Prettier integration
       'prettier/prettier': 'error',
     },
@@ -66,6 +74,7 @@ module.exports = [
       // Test files can be more relaxed
       'max-len': 'off',
       'no-console': 'off',
+      quotes: 'off',
       'prettier/prettier': 'error',
     },
   },

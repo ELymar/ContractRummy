@@ -249,7 +249,7 @@ class GameServer {
       this.wss.clients.forEach((client) => {
         try {
           client.terminate();
-        } catch (_) {}
+        } catch {}
       });
       await new Promise((res) => this.wss.close(() => res()));
     }

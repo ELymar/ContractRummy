@@ -123,7 +123,7 @@ class TerminalPlayerInterface extends PlayerInterface {
     try {
       contract = getContractForRound(currentRound);
       console.log(`Contract: ${contract.toString()}\n`);
-    } catch (error) {
+    } catch {
       console.log('For this round, you need: 2 sets of 3 cards each\n');
       contract = {
         requirements: [
@@ -493,8 +493,8 @@ class TerminalPlayerInterface extends PlayerInterface {
   }
 
   // Legacy method for backward compatibility
-  goDown(gameState, list_of_indices) {
-    const validation = this.validateMeld(list_of_indices);
+  goDown(gameState, listOfIndices) {
+    const validation = this.validateMeld(listOfIndices);
     if (!validation.valid) {
       console.log(`Unable to go down: ${validation.reason}`);
       return false;
@@ -502,7 +502,7 @@ class TerminalPlayerInterface extends PlayerInterface {
 
     const selectedMelds = [
       {
-        indices: list_of_indices,
+        indices: listOfIndices,
         type: validation.type,
         cards: validation.cards,
       },

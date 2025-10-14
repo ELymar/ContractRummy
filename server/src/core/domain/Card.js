@@ -6,7 +6,6 @@ const {
   EMOJI_TO_VALUE_MAP,
   EMOJI_TO_SUIT_MAP,
   SUITS,
-  VALUES,
 } = require('../../shared/Constants.js');
 
 class Card {

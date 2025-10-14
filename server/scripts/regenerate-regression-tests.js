@@ -112,7 +112,7 @@ function extractGameIdFromFilename(logFile) {
       const firstLog = JSON.parse(lines[0]);
       return firstLog.gameId;
     }
-  } catch (e) {
+  } catch {
     // Fallback: use filename if structured properly
     const basename = path.basename(logFile, '.log.json');
     return basename;

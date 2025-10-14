@@ -163,7 +163,6 @@ class ScoreKeeper {
   getScoreTable() {
     const colWidth = 6;
     const nameWidth = 10;
-    const totalCols = this.totalRounds + 2; // rounds + name + total
     const totalWidth = nameWidth + 3 + colWidth * (this.totalRounds + 1) + (this.totalRounds + 1);
 
     // Header

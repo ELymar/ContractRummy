@@ -1,6 +1,5 @@
 const EventEmitter = require('events');
 const Deck = require('./Deck');
-const Player = require('./Player');
 const BurnPile = require('./BurnPile');
 
 class GameState extends EventEmitter {

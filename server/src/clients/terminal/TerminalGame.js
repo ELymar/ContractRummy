@@ -2,7 +2,6 @@ const GameState = require('../../core/domain/GameState');
 const TerminalPlayerInterface = require('./TerminalPlayerInterface');
 const {getContractForRound, getTotalRounds} = require('../../core/rules/RoundContract');
 const ScoreKeeper = require('../../shared/ScoreKeeper');
-const CardScoring = require('../../core/rules/CardScoring');
 const RoundDealing = require('../../core/rules/RoundDealing');
 const GameIO = require('../../shared/GameIO');
 
@@ -69,7 +68,7 @@ class TerminalGame {
     try {
       const contract = getContractForRound(this.currentRound);
       console.log(`📋 ${contract.toString()}`);
-    } catch (error) {
+    } catch {
       console.log(`📋 Round ${this.currentRound}`);
     }
     console.log('─'.repeat(60));
@@ -115,7 +114,7 @@ class TerminalGame {
     try {
       const contract = getContractForRound(this.currentRound);
       console.log(`Contract for this round: ${contract.toString()}`);
-    } catch (error) {
+    } catch {
       console.log('Contract details unavailable for this round.');
     }
 

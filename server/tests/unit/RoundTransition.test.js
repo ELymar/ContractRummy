@@ -14,12 +14,12 @@ describe('Round Transition', () => {
 
   test('should proceed to round 2 after round 1 ends', () => {
     // Join two players
-    const player1Events = engine.apply({
+    engine.apply({
       type: ActionType.JOIN,
       playerId: 'p1',
       payload: {name: 'Player 1'},
     });
-    const player2Events = engine.apply({
+    engine.apply({
       type: ActionType.JOIN,
       playerId: 'p2',
       payload: {name: 'Player 2'},

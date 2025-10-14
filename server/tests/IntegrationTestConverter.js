@@ -52,7 +52,7 @@ class IntegrationTestConverter {
   }
 
   static generateIntegrationTest(logFilePath, outPath) {
-    const {gameId, initial, actions, players} = this.parseLog(logFilePath);
+    const {initial, actions} = this.parseLog(logFilePath);
     const deckArray = (initial.deck || []).map(this.toCardObject);
 
     // Reduce action stream to high-level scripted steps per player (strip playerId)

@@ -62,7 +62,7 @@ class ReadyHandler extends ActionHandler {
       const p1 = this.state.players[1];
       p0.hand.addCards(this.state.drawFromDeck(deal.player1Cards));
       p1.hand.addCards(this.state.drawFromDeck(deal.player2Cards));
-    } catch (e) {
+    } catch {
       // Fallback: deal 10/11 cards
       const p0 = this.state.players[0];
       const p1 = this.state.players[1];

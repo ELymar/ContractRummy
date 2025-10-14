@@ -35,7 +35,7 @@ test('fromString [🃏] returns Joker', () => {
 
 // Test all 52 cards
 test('fromString for all 52 cards', () => {
-  count = 0;
+  let count = 0;
   for (const suit of Constants.SUITS.slice(0, 4)) {
     for (const value of Constants.VALUES) {
       count += 1;

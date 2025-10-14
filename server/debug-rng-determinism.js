@@ -38,7 +38,7 @@ console.log('\n--- Test 3: RNG state preservation ---');
 const sharedRng = seedrandom('ba3bbada');
 console.log('Shared RNG calls:', sharedRng(), sharedRng(), sharedRng());
 
-const engine3 = new GameEngine({rng: sharedRng});
+new GameEngine({rng: sharedRng});
 console.log('After engine creation, shared RNG:', sharedRng(), sharedRng());
 
 // Test 4: Check deck creation directly

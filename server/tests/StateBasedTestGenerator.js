@@ -173,7 +173,6 @@ ${actionsWithFullState.map((log, index) => this.generateStateTest(log, index)).j
 
     // Remove the down piles that would be created by this action
     // Find piles owned by this player that were just created
-    const ownedPiles = reconstructed.downPiles.filter((pile) => pile.owner === player.name);
     if (action.payload && action.payload.melds) {
       // Remove the last N piles where N is the number of melds in this action
       const numMeldsToRemove = action.payload.melds.length;

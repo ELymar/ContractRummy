@@ -87,7 +87,7 @@ class GameLogger {
     try {
       const idx = gameState?.players?.findIndex((p) => p.id === action.playerId);
       playerIndex = idx >= 0 ? idx : undefined;
-    } catch (_) {}
+    } catch {}
 
     // Check if action resulted in error or critical events
     const hasError = events.some((e) => e.type === 'ERROR');
@@ -128,7 +128,7 @@ class GameLogger {
     if (events?.some((e) => e.type === 'GAME_STARTED')) {
       try {
         this.logInitialSnapshot(gameState);
-      } catch (_) {
+      } catch {
         // best-effort; ignore logging failures
       }
     }
@@ -373,7 +373,7 @@ class GameLogger {
       transports.forEach((t) => {
         try {
           if (typeof t.close === 'function') t.close();
-        } catch (_) {
+        } catch {
           // ignore
         }
         // Give Node a tick to let underlying streams flush

@@ -13,7 +13,7 @@ class CardSerializer {
     if (typeof card.toString === 'function') {
       try {
         return card.toString();
-      } catch (_) {}
+      } catch {}
     }
     // Fallback to DisplayUtils formatting (bracketed representation)
     return DisplayUtils.formatCard(card);

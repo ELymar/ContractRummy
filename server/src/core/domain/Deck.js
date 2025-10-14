@@ -83,7 +83,7 @@ class Deck {
       if (typeof c === 'string') {
         try {
           return Card.fromString(c);
-        } catch (_) {
+        } catch {
           return new Card();
         }
       }

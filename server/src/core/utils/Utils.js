@@ -1,10 +1,4 @@
-const Card = require('../domain/Card');
-const {SUITS, VALUES} = require('../../shared/Constants');
-
-const noChalk = (input) => {
-  input.replace(/\u001b[^m]*?m/g, '');
-  return input;
-};
+const {VALUES} = require('../../shared/Constants');
 
 const predecessor = (value) => {
   const index = VALUES.indexOf(value);
@@ -67,43 +61,42 @@ const isValidSequence = (cards) => {
   }
 
   // Check that cards are in sequence forward and backwards
-  const value = cards[nonJokerIndex].value;
   let index = nonJokerIndex;
 
   // Check forward. Calculate expected next vs current expected and compare
-  current_expected = cards[nonJokerIndex].value;
+  let currentExpected = cards[nonJokerIndex].value;
   while (index < cards.length) {
-    if (current_expected === 'Ace' && index > 0 && index < cards.length - 1) {
+    if (currentExpected === 'Ace' && index > 0 && index < cards.length - 1) {
       return false;
     }
     if (cards[index].value === 'Joker') {
       index += 1;
-      current_expected = successor(current_expected);
+      currentExpected = successor(currentExpected);
       continue;
     }
-    if (cards[index].value !== current_expected) {
+    if (cards[index].value !== currentExpected) {
       return false;
     }
-    current_expected = successor(current_expected);
+    currentExpected = successor(currentExpected);
     index += 1;
   }
   // Check backwards
-  current_expected = cards[nonJokerIndex].value;
+  currentExpected = cards[nonJokerIndex].value;
   index = nonJokerIndex;
   while (index >= 0) {
-    if (current_expected === 'Ace' && index > 0 && index < cards.length - 1) {
+    if (currentExpected === 'Ace' && index > 0 && index < cards.length - 1) {
       return false;
     }
     if (cards[index].value === 'Joker') {
       index -= 1;
-      current_expected = successor(current_expected);
+      currentExpected = successor(currentExpected);
       continue;
     }
-    if (cards[index].value !== current_expected) {
+    if (cards[index].value !== currentExpected) {
       return false;
     }
 
-    current_expected = predecessor(current_expected);
+    currentExpected = predecessor(currentExpected);
     index -= 1;
   }
   return true;

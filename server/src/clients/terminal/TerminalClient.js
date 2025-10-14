@@ -589,7 +589,7 @@ class TerminalClient {
       }
 
       return indices;
-    } catch (error) {
+    } catch {
       return 'invalid';
     }
   }
