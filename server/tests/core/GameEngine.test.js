@@ -128,8 +128,8 @@ describe('GameEngine', () => {
       ];
       
       const melds = [
-        { type: 'set', cardIndices: [0, 1, 2] },
-        { type: 'set', cardIndices: [3, 4, 5] }
+        { type: 'set', cardUuids: [player.hand.cards[0].uuid, player.hand.cards[1].uuid, player.hand.cards[2].uuid] },
+        { type: 'set', cardUuids: [player.hand.cards[3].uuid, player.hand.cards[4].uuid, player.hand.cards[5].uuid] }
       ];
       
       const evts = engine.apply({ type: ActionType.LAY_DOWN, playerId: 'p2', payload: { melds } });
@@ -143,8 +143,8 @@ describe('GameEngine', () => {
       engine.apply({ type: ActionType.DRAW, playerId: 'p2', payload: { nCards: 1 } });
       
       const melds = [
-        { type: 'set', cardIndices: [0, 1] }, // Only 2 cards - invalid
-        { type: 'set', cardIndices: [2, 3, 4] }
+        { type: 'set', cardUuids: [player.hand.cards[0].uuid, player.hand.cards[1].uuid] }, // Only 2 cards - invalid
+        { type: 'set', cardUuids: [player.hand.cards[2].uuid, player.hand.cards[3].uuid, player.hand.cards[4].uuid] }
       ];
       
       const evts = engine.apply({ type: ActionType.LAY_DOWN, playerId: 'p2', payload: { melds } });
@@ -154,9 +154,10 @@ describe('GameEngine', () => {
     });
 
     test('should prevent laying down before drawing', () => {
+      const player = engine.state.players[1];
       const melds = [
-        { type: 'set', cardIndices: [0, 1, 2] },
-        { type: 'set', cardIndices: [3, 4, 5] }
+        { type: 'set', cardUuids: [player.hand.cards[0].uuid, player.hand.cards[1].uuid, player.hand.cards[2].uuid] },
+        { type: 'set', cardUuids: [player.hand.cards[3].uuid, player.hand.cards[4].uuid, player.hand.cards[5].uuid] }
       ];
       
       const evts = engine.apply({ type: ActionType.LAY_DOWN, playerId: 'p2', payload: { melds } });
@@ -184,7 +185,7 @@ describe('GameEngine', () => {
       engine.state.downPiles = [meld];
       
       const evts = engine.apply({ type: ActionType.ADD_TO_MELD, playerId: 'p2', payload: { 
-        cardIndex: 0, 
+        cardUuid: player.hand.cards[0].uuid, 
         meldIndex: 0 
       }});
       
@@ -194,10 +195,11 @@ describe('GameEngine', () => {
     });
 
     test('should prevent adding to meld when not down', () => {
+      const player = engine.state.players[1];
       engine.apply({ type: ActionType.DRAW, playerId: 'p2', payload: { nCards: 1 } });
       
       const evts = engine.apply({ type: ActionType.ADD_TO_MELD, playerId: 'p2', payload: { 
-        cardIndex: 0, 
+        cardUuid: player.hand.cards[0].uuid, 
         meldIndex: 0 
       }});
       

@@ -1,5 +1,5 @@
 const GameState = require('../../core/domain/GameState');
-const TerminalPlayer = require('./TerminalPlayer');
+const TerminalPlayerInterface = require('./TerminalPlayerInterface');
 const { getContractForRound, getTotalRounds } = require('../../core/rules/RoundContract');
 const ScoreKeeper = require('../../shared/ScoreKeeper');
 const CardScoring = require('../../core/rules/CardScoring');
@@ -25,8 +25,8 @@ class TerminalGame {
         this.dealerIndex = 0; // Will be updated based on starting round
         
         // Initialize two players for terminal gameplay
-        this.players.push(new TerminalPlayer(player1Name));
-        this.players.push(new TerminalPlayer(player2Name));
+        this.players.push(new TerminalPlayerInterface(player1Name));
+        this.players.push(new TerminalPlayerInterface(player2Name));
         
         // Initialize score tracking
         const playerNames = this.players.map(player => player.name);

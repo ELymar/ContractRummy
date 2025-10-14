@@ -27,16 +27,19 @@ test('add cards to hand', () => {
     expect(player.hand.cards[1]).toBe(card2);
 });
 
-// Test roundReset clears flags but keeps name and hand structure
-test('roundReset clears flags', () => {
+// Test roundReset clears flags and hand
+test('roundReset clears flags and hand', () => {
     const player = new Player('test');
     
-    // Set some flags
+    // Add a card and set some flags
+    const card = new Card('Hearts', 'King');
+    player.hand.addCard(card);
     player.tookCard = true;
     player.isDown = true;
     player.discarded = true;
     player.isOut = true;
     
+    expect(player.hand.cards.length).toBe(1);
     expect(player.tookCard).toBe(true);
     expect(player.isDown).toBe(true);
     expect(player.discarded).toBe(true);
@@ -46,6 +49,7 @@ test('roundReset clears flags', () => {
     player.roundReset();
     
     expect(player.name).toBe('test'); // Name should remain
+    expect(player.hand.cards.length).toBe(0); // Hand should be cleared
     expect(player.tookCard).toBe(false);
     expect(player.isDown).toBe(false);
     expect(player.discarded).toBe(false);
@@ -58,5 +62,5 @@ test('toString returns player info', () => {
     const card = new Card('Hearts', 'King');
     player.hand.addCard(card);
     
-    expect(player.toString()).toBe('Alice: 1 cards');
+    expect(player.toString()).toBe('Alice: [K♥]');
 });

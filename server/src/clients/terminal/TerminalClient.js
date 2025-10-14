@@ -454,12 +454,17 @@ class TerminalClient {
     // This allows server to sync hand order and then use simple index-based operations
     const melds = selectedMelds.map(m => ({
       type: m.type,
-      cardIndices: m.indices
+      cardUuids: m.indices.map(idx => {
+        const card = this.view.yourHand[idx];
+        if (!card || !card.uuid) {
+          throw new Error(`Card at index ${idx} does not have a UUID`);
+        }
+        return card.uuid;
+      })
     }));
     
     this.sendCommand(ActionType.LAY_DOWN, { 
-      melds, 
-      handOrder: this.view.yourHand // Send current hand order for synchronization
+      melds
     });
     await this.waitForUpdate();
     return true;
@@ -625,10 +630,16 @@ class TerminalClient {
       return false;
     }
     
+    // Get the UUID of the selected card
+    const selectedCard = this.view.yourHand[cardIndex];
+    if (!selectedCard || !selectedCard.uuid) {
+      console.log('Error: Selected card does not have a UUID');
+      return false;
+    }
+    
     this.sendCommand(ActionType.ADD_TO_MELD, { 
-      cardIndex, 
-      meldIndex, 
-      handOrder: this.view.yourHand 
+      cardUuid: selectedCard.uuid,
+      meldIndex
     });
     await this.waitForUpdate();
     return true;
@@ -646,9 +657,15 @@ class TerminalClient {
       return false; // Return false to indicate cancellation
     }
     
+    // Get the UUID of the selected card
+    const selectedCard = this.view.yourHand[cardIndex];
+    if (!selectedCard || !selectedCard.uuid) {
+      console.log('Error: Selected card does not have a UUID');
+      return false;
+    }
+    
     this.sendCommand(ActionType.DISCARD, { 
-      cardIndex, 
-      handOrder: this.view.yourHand 
+      cardUuid: selectedCard.uuid
     });
     await this.waitForUpdate();
     return true; // Return true to indicate successful discard

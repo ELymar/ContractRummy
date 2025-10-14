@@ -212,58 +212,6 @@ class GameEngine {
     return { valid: true };
   }
 
-  // Validate and synchronize player's hand order with client's proposed order
-  validateAndSyncHand(player, proposedHandOrder) {
-    if (!player.hand || !player.hand.cards) {
-      return { error: 'Player has no cards' };
-    }
-
-    if (!proposedHandOrder || !Array.isArray(proposedHandOrder)) {
-      return { error: 'Invalid hand order provided' };
-    }
-
-    const serverHand = player.hand.cards;
-    
-    // Check if lengths match
-    if (proposedHandOrder.length !== serverHand.length) {
-      return { error: `Hand size mismatch: server has ${serverHand.length}, client has ${proposedHandOrder.length}` };
-    }
-
-    // Create sets for efficient comparison
-    const serverCardSet = new Set(serverHand.map(card => `${card.suit}-${card.value}`));
-    const clientCardSet = new Set(proposedHandOrder.map(card => `${card.suit}-${card.value}`));
-
-    // Check if both sets contain exactly the same cards
-    if (serverCardSet.size !== clientCardSet.size) {
-      return { error: 'Hand contains duplicate cards' };
-    }
-
-    for (const cardKey of serverCardSet) {
-      if (!clientCardSet.has(cardKey)) {
-        return { error: `Card mismatch: server has card that client doesn't have` };
-      }
-    }
-
-    for (const cardKey of clientCardSet) {
-      if (!serverCardSet.has(cardKey)) {
-        return { error: `Card mismatch: client has card that server doesn't have` };
-      }
-    }
-
-    // Validation passed - sync the hand order
-    // Create new card objects matching the proposed order but using server's card instances
-    const syncedHand = proposedHandOrder.map(proposedCard => {
-      // Find the matching server card instance
-      return serverHand.find(serverCard => 
-        serverCard.suit === proposedCard.suit && serverCard.value === proposedCard.value
-      );
-    });
-
-    // Update player's hand to match client order
-    player.hand.cards = syncedHand;
-
-    return { valid: true, syncedHand };
-  }
 
   // Find card by UUID and return its index in player's hand
   findCardByUuid(player, cardUuid) {
@@ -553,25 +501,10 @@ class GameEngine {
           return evts;
         }
         
-        const { melds, handOrder } = payload;
+        const { melds } = payload;
         if (!melds || !Array.isArray(melds) || melds.length === 0) {
           evts.push(this.emit(EventType.ERROR, { message: 'Must provide melds to lay down' }));
           return evts;
-        }
-        
-        // Synchronize hand order with client if provided
-        if (handOrder) {
-          const syncResult = this.validateAndSyncHand(player, handOrder);
-          if (syncResult.error) {
-            // For test mode, try to map card indices to actual hand cards instead of failing
-            if (process.env.NODE_ENV === 'test') {
-              console.warn(`Hand sync failed in test mode, attempting meld mapping: ${syncResult.error}`);
-              // Continue without hand sync - use card indices as-is with current hand
-            } else {
-              evts.push(this.emit(EventType.ERROR, { message: `Hand sync failed: ${syncResult.error}` }));
-              return evts;
-            }
-          }
         }
         
         // Validate melds and check contract
@@ -584,33 +517,39 @@ class GameEngine {
             return evts;
           }
           
-          const usedCardIndices = new Set();
+          const usedCardUuids = new Set();
           const validatedMelds = [];
           
           for (let i = 0; i < melds.length; i++) {
             const meld = melds[i];
-            const { cardIndices, type } = meld;
+            const { cardUuids, type } = meld;
             
-            if (!cardIndices || !Array.isArray(cardIndices)) {
-              evts.push(this.emit(EventType.ERROR, { message: 'Invalid meld cardIndices data' }));
+            if (!cardUuids || !Array.isArray(cardUuids)) {
+              evts.push(this.emit(EventType.ERROR, { message: 'Invalid meld cardUuids data' }));
               return evts;
             }
             
-            // Validate card indices
-            const validation = this.validatePlayerOwnsCards(player, cardIndices);
-            if (validation.error) {
-              evts.push(this.emit(EventType.ERROR, { message: validation.error }));
-              return evts;
-            }
+            // Convert UUIDs to cards and validate ownership
+            const cards = [];
+            const cardIndices = [];
             
-            // Check for overlapping indices with previous melds
-            const hasOverlap = cardIndices.some(idx => usedCardIndices.has(idx));
-            if (hasOverlap) {
-              evts.push(this.emit(EventType.ERROR, { message: 'Cannot use the same card in multiple melds' }));
-              return evts;
+            for (const uuid of cardUuids) {
+              const cardLookup = this.findCardByUuid(player, uuid);
+              if (cardLookup.error) {
+                evts.push(this.emit(EventType.ERROR, { message: `Meld ${i + 1}: ${cardLookup.error}` }));
+                return evts;
+              }
+              
+              // Check for overlapping UUIDs with previous melds
+              if (usedCardUuids.has(uuid)) {
+                evts.push(this.emit(EventType.ERROR, { message: 'Cannot use the same card in multiple melds' }));
+                return evts;
+              }
+              
+              usedCardUuids.add(uuid);
+              cards.push(player.hand.cards[cardLookup.cardIndex]);
+              cardIndices.push(cardLookup.cardIndex);
             }
-            
-            const cards = cardIndices.map(idx => player.hand.cards[idx]);
             
             // Validate meld type
             if (type === 'set' && !isValidDupes(cards)) {
@@ -621,9 +560,7 @@ class GameEngine {
               return evts;
             }
             
-            // Mark indices as used
-            cardIndices.forEach(idx => usedCardIndices.add(idx));
-            validatedMelds.push({ cards, type: type === 'set' ? 'dupes' : 'sequence' });
+            validatedMelds.push({ cards, cardIndices, type: type === 'set' ? 'dupes' : 'sequence' });
           }
           
           // Check contract satisfaction
@@ -636,7 +573,10 @@ class GameEngine {
           }
           
           // All validation passed - execute the lay down
-          const sortedIndices = Array.from(usedCardIndices).sort((a, b) => b - a);
+          // Collect all card indices and sort in descending order to avoid index shifting during removal
+          const allCardIndices = [];
+          validatedMelds.forEach(meld => allCardIndices.push(...meld.cardIndices));
+          const sortedIndices = allCardIndices.sort((a, b) => b - a);
           
           // Create down piles
           for (const meld of validatedMelds) {
@@ -749,20 +689,12 @@ class GameEngine {
           return evts;
         }
         
-        const { cardIndex, meldIndex, position, handOrder } = payload;
+        const { cardUuid, meldIndex, position } = payload;
         
-        // Synchronize hand order with client if provided
-        if (handOrder) {
-          const syncResult = this.validateAndSyncHand(player, handOrder);
-          if (syncResult.error) {
-            evts.push(this.emit(EventType.ERROR, { message: `Hand sync failed: ${syncResult.error}` }));
-            return evts;
-          }
-        }
-        
-        const validation = this.validatePlayerOwnsCards(player, [cardIndex]);
-        if (validation.error) {
-          evts.push(this.emit(EventType.ERROR, { message: validation.error }));
+        // Find card by UUID
+        const cardLookup = this.findCardByUuid(player, cardUuid);
+        if (cardLookup.error) {
+          evts.push(this.emit(EventType.ERROR, { message: cardLookup.error }));
           return evts;
         }
         
@@ -771,6 +703,7 @@ class GameEngine {
           return evts;
         }
         
+        const cardIndex = cardLookup.cardIndex;
         const card = player.hand.cards[cardIndex];
         const meld = this.state.downPiles[meldIndex];
         

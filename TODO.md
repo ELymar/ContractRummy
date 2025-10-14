@@ -54,7 +54,7 @@ The refactorings below are prioritized to support this architectural evolution.
 
 ---
 
-## 1. Duplicate Player Classes (High Priority)
+## 1. [X] Duplicate Player Classes (High Priority)
 **Current Issue:** Two nearly identical player classes exist:
 - `game_runner/Player.js` - Simple player class with basic game logic
 - `game_runner/TerminalPlayer.js` - Enhanced player with terminal UI logic (400+ lines)
@@ -68,7 +68,7 @@ The refactorings below are prioritized to support this architectural evolution.
 
 ---
 
-## 2. Hand Order Synchronization Complexity (High Priority)
+## 2. [X] Hand Order Synchronization Complexity (High Priority)
 **Current Issue:** 
 - Clients send their entire hand order with every action (`handOrder: [...]`)
 - Server validates and syncs hand order every time via `validateAndSyncHand()` (50+ lines)
@@ -112,7 +112,7 @@ if (cardIndex === -1) return { error: 'Player does not own that card' };
 
 ---
 
-## 3. GameEngine Action Handler Complexity (Medium Priority)
+## 3. [ ] GameEngine Action Handler Complexity (Medium Priority)
 **Current Issue:** 
 - The `apply()` method is a massive switch statement (800+ lines)
 - Repetitive validation patterns across different actions
@@ -127,7 +127,7 @@ if (cardIndex === -1) return { error: 'Player does not own that card' };
 
 ---
 
-## 4. Event System Over-Engineering (Medium Priority)
+## 4. [ ] Event System Over-Engineering (Medium Priority)
 **Current Issue:**
 - Every action creates events that are collected and returned
 - Most events are just "X happened" notifications
@@ -142,7 +142,7 @@ if (cardIndex === -1) return { error: 'Player does not own that card' };
 
 ---
 
-## 5. Card Representation Inconsistency (Low Priority)
+## 5. [ ] Card Representation Inconsistency (Low Priority)
 **Current Issue:** Cards are represented differently across contexts:
 - `Card` objects with `.suit`/`.value` properties
 - Serialized strings like `[K♦]`
