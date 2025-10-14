@@ -1,0 +1,15 @@
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760299058647,"level":"info","message":"Game started","startTime":1760299058647,"timestamp":"2025-10-12T19:57:38.654Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760299157288,"level":"info","message":"Game started","startTime":1760299157288,"timestamp":"2025-10-12T19:59:17.292Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760299300822,"level":"info","message":"Game started","startTime":1760299300822,"timestamp":"2025-10-12T20:01:40.827Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760395706147,"level":"info","message":"Game started","startTime":1760395706147,"timestamp":"2025-10-13T22:48:26.158Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760396716632,"level":"info","message":"Game started","startTime":1760396716632,"timestamp":"2025-10-13T23:05:16.642Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760396799229,"level":"info","message":"Game started","startTime":1760396799229,"timestamp":"2025-10-13T23:06:39.236Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760398277204,"level":"info","message":"Game started","startTime":1760398277204,"timestamp":"2025-10-13T23:31:17.221Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760399154518,"level":"info","message":"Game started","startTime":1760399154518,"timestamp":"2025-10-13T23:45:54.529Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760399190326,"level":"info","message":"Game started","startTime":1760399190326,"timestamp":"2025-10-13T23:46:30.334Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760399487867,"level":"info","message":"Game started","startTime":1760399487867,"timestamp":"2025-10-13T23:51:27.875Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760399629251,"level":"info","message":"Game started","startTime":1760399629251,"timestamp":"2025-10-13T23:53:49.264Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760399680093,"level":"info","message":"Game started","startTime":1760399680093,"timestamp":"2025-10-13T23:54:40.104Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760399755490,"level":"info","message":"Game started","startTime":1760399755490,"timestamp":"2025-10-13T23:55:55.497Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760399988438,"level":"info","message":"Game started","startTime":1760399988438,"timestamp":"2025-10-13T23:59:48.450Z"}
+{"event":"game_started","gameId":"test-game-1","gameStartTime":1760400061601,"level":"info","message":"Game started","startTime":1760400061601,"timestamp":"2025-10-14T00:01:01.613Z"}

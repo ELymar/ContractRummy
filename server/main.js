@@ -10,7 +10,7 @@
  * Usage: npm start
  */
 
-const TerminalGame = require('./game_runner/TerminalGame');
+const TerminalGame = require('./src/clients/terminal/TerminalGame');
 const readline = require('readline');
 
 async function getPlayerNames() {
