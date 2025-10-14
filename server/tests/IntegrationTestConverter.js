@@ -4,40 +4,63 @@ const path = require('path');
 class IntegrationTestConverter {
   static parseLog(filePath) {
     const content = fs.readFileSync(filePath, 'utf8');
-    const lines = content.trim().split('\n').map(l => JSON.parse(l));
-    const gameStart = lines.find(l => l.event === 'game_started');
-    const initial = lines.find(l => l.event === 'game_initial_snapshot');
-    const actions = lines.filter(l => l.event === 'game_action');
+    const lines = content
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l));
+    const gameStart = lines.find((l) => l.event === 'game_started');
+    const initial = lines.find((l) => l.event === 'game_initial_snapshot');
+    const actions = lines.filter((l) => l.event === 'game_action');
     if (!gameStart || !initial || actions.length === 0) {
-      throw new Error('Log missing required entries (game_started, game_initial_snapshot, or actions)');
+      throw new Error(
+        'Log missing required entries (game_started, game_initial_snapshot, or actions)'
+      );
     }
 
     // Determine join order from JOIN actions
-    const joinActions = actions.filter(a => a.action?.type === 'JOIN');
-    const players = joinActions.map(a => a.action?.playerId);
+    const joinActions = actions.filter((a) => a.action?.type === 'JOIN');
+    const players = joinActions.map((a) => a.action?.playerId);
     const uniquePlayers = Array.from(new Set(players)).slice(0, 2);
-    return { gameId: gameStart.gameId, initial, actions, players: uniquePlayers };
+    return {gameId: gameStart.gameId, initial, actions, players: uniquePlayers};
   }
 
   static toCardObject(str) {
     // Expect strings like "[A♥]" from toString; handle Jokers too
     if (typeof str !== 'string') return str;
-    if (str.includes('🃏') || str.includes('Joker')) return { suit: 'Joker', value: 'Joker' };
+    if (str.includes('🃏') || str.includes('Joker')) return {suit: 'Joker', value: 'Joker'};
     const m = str.match(/\[(.+?)([♥♦♣♠])\]/);
     if (!m) return str;
     const shortVal = m[1];
     const suitSym = m[2];
-    const suitMap = { '♥': 'Hearts', '♦': 'Diamonds', '♣': 'Clubs', '♠': 'Spades' };
-    const valueMap = { 'A': 'Ace', 'K': 'King', 'Q': 'Queen', 'J': 'Jack', '10': 'Ten', '9': 'Nine', '8': 'Eight', '7': 'Seven', '6': 'Six', '5': 'Five', '4': 'Four', '3': 'Three', '2': 'Two' };
-    return { suit: suitMap[suitSym], value: valueMap[shortVal] || shortVal };
+    const suitMap = {'♥': 'Hearts', '♦': 'Diamonds', '♣': 'Clubs', '♠': 'Spades'};
+    const valueMap = {
+      A: 'Ace',
+      K: 'King',
+      Q: 'Queen',
+      J: 'Jack',
+      10: 'Ten',
+      9: 'Nine',
+      8: 'Eight',
+      7: 'Seven',
+      6: 'Six',
+      5: 'Five',
+      4: 'Four',
+      3: 'Three',
+      2: 'Two',
+    };
+    return {suit: suitMap[suitSym], value: valueMap[shortVal] || shortVal};
   }
 
   static generateIntegrationTest(logFilePath, outPath) {
-    const { gameId, initial, actions, players } = this.parseLog(logFilePath);
+    const {gameId, initial, actions, players} = this.parseLog(logFilePath);
     const deckArray = (initial.deck || []).map(this.toCardObject);
 
     // Reduce action stream to high-level scripted steps per player (strip playerId)
-    const script = actions.map(a => ({ type: a.action.type, payload: a.action.payload || {}, playerId: a.playerId }));
+    const script = actions.map((a) => ({
+      type: a.action.type,
+      payload: a.action.payload || {},
+      playerId: a.playerId,
+    }));
 
     const code = `const GameServer = require('../../server/GameServer');
 const TestBotClient = require('../helpers/TestBotClient');

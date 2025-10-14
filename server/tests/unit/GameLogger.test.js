@@ -2,7 +2,7 @@ const GameLogger = require('../../src/server/GameLogger');
 
 // Fake card objects with toString
 function makeCard(s) {
-  return { toString: () => s };
+  return {toString: () => s};
 }
 
 describe('GameLogger serializeCard', () => {

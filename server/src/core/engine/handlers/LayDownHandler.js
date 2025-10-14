@@ -1,7 +1,7 @@
 const ActionHandler = require('./ActionHandler');
-const { EventType } = require('../events');
-const { getContractForRound } = require('../../rules/RoundContract');
-const { isValidDupes, isValidSequence } = require('../../utils/Utils');
+const {EventType} = require('../events');
+const {getContractForRound} = require('../../rules/RoundContract');
+const {isValidDupes, isValidSequence} = require('../../utils/Utils');
 const DownPile = require('../../domain/DownPile');
 
 /**
@@ -25,7 +25,7 @@ class LayDownHandler extends ActionHandler {
     }
 
     // Validate melds payload
-    const { melds } = payload;
+    const {melds} = payload;
     if (!melds || !Array.isArray(melds) || melds.length === 0) {
       return this.createError('Must provide melds to lay down');
     }
@@ -40,7 +40,6 @@ class LayDownHandler extends ActionHandler {
 
       // Execute lay down
       return this.executeLayDown(player, validationResult.validatedMelds);
-
     } catch (error) {
       return this.createError(`Contract validation failed: ${error.message}`);
     }
@@ -48,8 +47,8 @@ class LayDownHandler extends ActionHandler {
 
   validateMelds(player, melds, contract) {
     if (melds.length !== contract.requirements.length) {
-      return { 
-        error: `Contract requires ${contract.requirements.length} melds, got ${melds.length}` 
+      return {
+        error: `Contract requires ${contract.requirements.length} melds, got ${melds.length}`,
       };
     }
 
@@ -58,30 +57,34 @@ class LayDownHandler extends ActionHandler {
 
     for (let i = 0; i < melds.length; i++) {
       const meld = melds[i];
-      const { cardUuids, type } = meld;
+      const {cardUuids, type} = meld;
 
       if (!cardUuids || !Array.isArray(cardUuids)) {
-        return { error: 'Invalid meld cardUuids data' };
+        return {error: 'Invalid meld cardUuids data'};
       }
 
       // Convert UUIDs to cards and validate
       const meldValidation = this.validateSingleMeld(player, cardUuids, type, usedCardUuids, i);
       if (meldValidation.error) {
-        return { error: meldValidation.error };
+        return {error: meldValidation.error};
       }
 
       validatedMelds.push(meldValidation.meld);
     }
 
     // Check contract satisfaction
-    if (!contract.isContractSatisfied(validatedMelds.map(m => ({
-      type: m.type === 'dupes' ? 'set' : 'sequence',
-      cards: m.cards
-    })))) {
-      return { error: 'Melds do not satisfy contract requirements' };
+    if (
+      !contract.isContractSatisfied(
+        validatedMelds.map((m) => ({
+          type: m.type === 'dupes' ? 'set' : 'sequence',
+          cards: m.cards,
+        }))
+      )
+    ) {
+      return {error: 'Melds do not satisfy contract requirements'};
     }
 
-    return { validatedMelds };
+    return {validatedMelds};
   }
 
   validateSingleMeld(player, cardUuids, type, usedCardUuids, meldIndex) {
@@ -91,11 +94,11 @@ class LayDownHandler extends ActionHandler {
     for (const uuid of cardUuids) {
       const cardLookup = this.findCardByUuid(player, uuid);
       if (cardLookup.error) {
-        return { error: `Meld ${meldIndex + 1}: ${cardLookup.error}` };
+        return {error: `Meld ${meldIndex + 1}: ${cardLookup.error}`};
       }
 
       if (usedCardUuids.has(uuid)) {
-        return { error: 'Cannot use the same card in multiple melds' };
+        return {error: 'Cannot use the same card in multiple melds'};
       }
 
       usedCardUuids.add(uuid);
@@ -105,17 +108,17 @@ class LayDownHandler extends ActionHandler {
 
     // Validate meld type
     if (type === 'set' && !isValidDupes(cards)) {
-      return { error: `Invalid set at meld ${meldIndex + 1}` };
+      return {error: `Invalid set at meld ${meldIndex + 1}`};
     } else if (type === 'sequence' && !isValidSequence(cards)) {
-      return { error: `Invalid sequence at meld ${meldIndex + 1}` };
+      return {error: `Invalid sequence at meld ${meldIndex + 1}`};
     }
 
     return {
       meld: {
         cards,
         cardIndices,
-        type: type === 'set' ? 'dupes' : 'sequence'
-      }
+        type: type === 'set' ? 'dupes' : 'sequence',
+      },
     };
   }
 
@@ -130,23 +133,25 @@ class LayDownHandler extends ActionHandler {
 
     // Remove cards from hand (in descending index order to avoid shifting)
     const allCardIndices = [];
-    validatedMelds.forEach(meld => allCardIndices.push(...meld.cardIndices));
+    validatedMelds.forEach((meld) => allCardIndices.push(...meld.cardIndices));
     const sortedIndices = allCardIndices.sort((a, b) => b - a);
 
-    sortedIndices.forEach(idx => {
+    sortedIndices.forEach((idx) => {
       player.hand.cards.splice(idx, 1);
     });
 
     player.isDown = true;
 
     // Emit lay down event
-    evts.push(this.emit(EventType.MELD_LAID, {
-      playerId: player.id,
-      melds: validatedMelds.map(meld => ({
-        cards: meld.cards.map(card => card.toString?.() ?? String(card)),
-        type: meld.type
-      }))
-    }));
+    evts.push(
+      this.emit(EventType.MELD_LAID, {
+        playerId: player.id,
+        melds: validatedMelds.map((meld) => ({
+          cards: meld.cards.map((card) => card.toString?.() ?? String(card)),
+          type: meld.type,
+        })),
+      })
+    );
 
     return evts;
   }

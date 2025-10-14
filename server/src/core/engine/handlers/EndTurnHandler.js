@@ -1,5 +1,5 @@
 const ActionHandler = require('./ActionHandler');
-const { EventType } = require('../events');
+const {EventType} = require('../events');
 
 /**
  * Handles END_TURN actions - ends current player's turn and advances to next player
@@ -25,9 +25,11 @@ class EndTurnHandler extends ActionHandler {
     const nPlayers = this.state.players.length;
     if (nPlayers > 0) {
       this.state.currentPlayerIndex = (this.state.currentPlayerIndex + 1) % nPlayers;
-      return [this.emit(EventType.TURN_STARTED, { 
-        playerIndex: this.state.currentPlayerIndex 
-      })];
+      return [
+        this.emit(EventType.TURN_STARTED, {
+          playerIndex: this.state.currentPlayerIndex,
+        }),
+      ];
     }
 
     return [];

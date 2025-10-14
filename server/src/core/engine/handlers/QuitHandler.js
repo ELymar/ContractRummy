@@ -1,5 +1,5 @@
 const ActionHandler = require('./ActionHandler');
-const { EventType } = require('../events');
+const {EventType} = require('../events');
 
 /**
  * Handles QUIT actions - player quits the game
@@ -13,17 +13,19 @@ class QuitHandler extends ActionHandler {
 
     const evts = [];
     const player = turnCheck.player;
-    
+
     player.isOut = true;
     player.quit = true;
 
-    evts.push(this.emit(EventType.PLAYER_QUIT, {
-      playerId,
-      playerName: player.name
-    }));
+    evts.push(
+      this.emit(EventType.PLAYER_QUIT, {
+        playerId,
+        playerName: player.name,
+      })
+    );
 
     // Check if only one player remains
-    const activePlayers = this.state.players.filter(p => !p.isOut);
+    const activePlayers = this.state.players.filter((p) => !p.isOut);
     if (activePlayers.length <= 1) {
       const winner = activePlayers[0];
       evts.push(...this.engine.handleRoundEnd(winner?.id, 'opponent_quit'));
@@ -39,15 +41,17 @@ class QuitHandler extends ActionHandler {
     const nPlayers = this.state.players.length;
     if (nPlayers > 0) {
       this.state.currentPlayerIndex = (this.state.currentPlayerIndex + 1) % nPlayers;
-      
+
       // Skip players who are out
       while (this.state.players[this.state.currentPlayerIndex].isOut && activePlayers.length > 1) {
         this.state.currentPlayerIndex = (this.state.currentPlayerIndex + 1) % nPlayers;
       }
-      
-      evts.push(this.emit(EventType.TURN_STARTED, { 
-        playerIndex: this.state.currentPlayerIndex 
-      }));
+
+      evts.push(
+        this.emit(EventType.TURN_STARTED, {
+          playerIndex: this.state.currentPlayerIndex,
+        })
+      );
     }
   }
 }

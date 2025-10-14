@@ -32,22 +32,22 @@ Examples:
 
 function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.includes('--help')) {
     showUsage();
     return;
   }
-  
+
   let inputDir = path.join(__dirname, '../tests/recorded-games');
   let outputDir = path.join(__dirname, '../tests/generated');
   let singleFile = null;
   let mode = 'engine';
-  
+
   // Parse arguments
   for (let i = 0; i < args.length; i += 2) {
     const flag = args[i];
     const value = args[i + 1];
-    
+
     switch (flag) {
       case '--input':
         inputDir = value;
@@ -67,7 +67,7 @@ function main() {
         process.exit(1);
     }
   }
-  
+
   try {
     if (singleFile) {
       // Convert single file
@@ -76,7 +76,10 @@ function main() {
 
       // Engine test
       if (mode === 'engine' || mode === 'both') {
-        const engineOut = path.join(outputDir, `${path.basename(singleFile, '.json')}.engine.test.js`);
+        const engineOut = path.join(
+          outputDir,
+          `${path.basename(singleFile, '.json')}.engine.test.js`
+        );
         GameTestConverter.generateTestFile(inputPath, engineOut);
         console.log(`✅ Engine test generated: ${engineOut}`);
       }
@@ -84,7 +87,10 @@ function main() {
       // Integration test
       if (mode === 'integration' || mode === 'both') {
         const IntegrationTestConverter = require('../tests/IntegrationTestConverter');
-        const intOut = path.join(outputDir, `${path.basename(singleFile, '.json')}.integration.test.js`);
+        const intOut = path.join(
+          outputDir,
+          `${path.basename(singleFile, '.json')}.integration.test.js`
+        );
         IntegrationTestConverter.generateIntegrationTest(inputPath, intOut);
         console.log(`✅ Integration test generated: ${intOut}`);
       }
@@ -93,8 +99,10 @@ function main() {
       console.log(`Converting logs from: ${inputDir}`);
       console.log(`Generating tests in: ${outputDir}`);
       const IntegrationTestConverter = require('../tests/IntegrationTestConverter');
-      
-      const files = require('fs').readdirSync(inputDir).filter(f => f.endsWith('.json'));
+
+      const files = require('fs')
+        .readdirSync(inputDir)
+        .filter((f) => f.endsWith('.json'));
       for (const f of files) {
         const inPath = path.join(inputDir, f);
         if (mode === 'engine' || mode === 'both') {
@@ -108,7 +116,7 @@ function main() {
           console.log(`✅ Integration test: ${intOut}`);
         }
       }
-      
+
       console.log(`\n🎉 Conversion complete!`);
       console.log(`\nTo run the generated tests:`);
       console.log(`  cd ${path.relative(process.cwd(), outputDir)}`);

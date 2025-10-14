@@ -1,5 +1,5 @@
 const ActionHandler = require('./ActionHandler');
-const { EventType } = require('../events');
+const {EventType} = require('../events');
 
 /**
  * Handles DISCARD actions - player discards a card from their hand
@@ -22,14 +22,14 @@ class DiscardHandler extends ActionHandler {
     }
 
     // Find and validate card
-    const { cardUuid } = payload;
+    const {cardUuid} = payload;
     const cardLookup = this.findCardByUuid(player, cardUuid);
     if (cardLookup.error) {
       return this.createError(cardLookup.error);
     }
 
     // Execute discard
-    const { cardIndex, card: discardedCard } = cardLookup;
+    const {cardIndex, card: discardedCard} = cardLookup;
     player.hand.cards.splice(cardIndex, 1);
     this.state.burnPile.addCard(discardedCard);
     player.discarded = true;
@@ -41,11 +41,13 @@ class DiscardHandler extends ActionHandler {
     }
 
     // Emit discard event
-    evts.push(this.emit(EventType.CARD_DISCARDED, {
-      playerId,
-      cardId: discardedCard.toString?.() ?? String(discardedCard),
-      remainingCards: player.hand.cards.length
-    }));
+    evts.push(
+      this.emit(EventType.CARD_DISCARDED, {
+        playerId,
+        cardId: discardedCard.toString?.() ?? String(discardedCard),
+        remainingCards: player.hand.cards.length,
+      })
+    );
 
     // Validate state consistency (development only)
     this.validateStateConsistency(evts);
@@ -54,7 +56,7 @@ class DiscardHandler extends ActionHandler {
   }
 
   validateStateConsistency(evts) {
-    const triggeredRoundEnd = evts.some(e => e.type === 'ROUND_ENDED');
+    const triggeredRoundEnd = evts.some((e) => e.type === 'ROUND_ENDED');
     if (process.env.NODE_ENV !== 'test' && !triggeredRoundEnd) {
       const stateCheck = this.engine.validateGameStateConsistency();
       if (stateCheck.error) {

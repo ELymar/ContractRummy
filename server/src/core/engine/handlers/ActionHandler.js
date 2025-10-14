@@ -1,4 +1,4 @@
-const { EventType } = require('../events');
+const {EventType} = require('../events');
 
 /**
  * Base class for all action handlers
@@ -24,51 +24,51 @@ class ActionHandler {
 
   validateTurn(playerId) {
     if (this.state.currentPlayerIndex === -1) {
-      return { error: 'Game not started' };
+      return {error: 'Game not started'};
     }
 
     const currentPlayer = this.state.players[this.state.currentPlayerIndex];
     if (!currentPlayer || currentPlayer.id !== playerId) {
-      return { error: 'Not your turn' };
+      return {error: 'Not your turn'};
     }
 
-    return { valid: true, player: currentPlayer };
+    return {valid: true, player: currentPlayer};
   }
 
   validatePlayerOwnsCards(player, cardIndices) {
     if (!player.hand || !player.hand.cards) {
-      return { error: 'Player has no cards' };
+      return {error: 'Player has no cards'};
     }
 
     for (const idx of cardIndices) {
       if (idx < 0 || idx >= player.hand.cards.length) {
-        return { error: `Invalid card index: ${idx}` };
+        return {error: `Invalid card index: ${idx}`};
       }
     }
-    
+
     const uniqueIndices = new Set(cardIndices);
     if (uniqueIndices.size !== cardIndices.length) {
-      return { error: 'Cannot use the same card twice' };
+      return {error: 'Cannot use the same card twice'};
     }
-    
-    return { valid: true };
+
+    return {valid: true};
   }
 
   findCardByUuid(player, cardUuid) {
     if (!player.hand || !player.hand.cards) {
-      return { error: 'Player has no cards' };
+      return {error: 'Player has no cards'};
     }
 
     if (!cardUuid) {
-      return { error: 'No card UUID provided' };
+      return {error: 'No card UUID provided'};
     }
 
-    const cardIndex = player.hand.cards.findIndex(card => card.uuid === cardUuid);
+    const cardIndex = player.hand.cards.findIndex((card) => card.uuid === cardUuid);
     if (cardIndex === -1) {
-      return { error: 'Player does not own that card' };
+      return {error: 'Player does not own that card'};
     }
 
-    return { cardIndex, card: player.hand.cards[cardIndex] };
+    return {cardIndex, card: player.hand.cards[cardIndex]};
   }
 
   // Shared event emission
@@ -78,7 +78,7 @@ class ActionHandler {
 
   // Shared error handling
   createError(message) {
-    return [this.emit(EventType.ERROR, { message })];
+    return [this.emit(EventType.ERROR, {message})];
   }
 }
 

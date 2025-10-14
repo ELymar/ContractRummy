@@ -13,11 +13,11 @@ describe('TerminalClient MELD_LAID Event Display', () => {
     client.playerId = 'player1';
     client.view = {
       players: [
-        { id: 'player1', name: 'Player 1' },
-        { id: 'player2', name: 'Player 2' }
-      ]
+        {id: 'player1', name: 'Player 1'},
+        {id: 'player2', name: 'Player 2'},
+      ],
     };
-    
+
     // Spy on console.log to capture output
     consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
   });
@@ -34,14 +34,14 @@ describe('TerminalClient MELD_LAID Event Display', () => {
         melds: [
           {
             type: 'set',
-            cards: ['[A♥]', '[A♠]', '[A♣]']
+            cards: ['[A♥]', '[A♠]', '[A♣]'],
           },
           {
-            type: 'sequence', 
-            cards: ['[6♠]', '[7♠]', '[8♠]', '[9♠]']
-          }
-        ]
-      }
+            type: 'sequence',
+            cards: ['[6♠]', '[7♠]', '[8♠]', '[9♠]'],
+          },
+        ],
+      },
     };
 
     client.processEvent(event);
@@ -56,8 +56,8 @@ describe('TerminalClient MELD_LAID Event Display', () => {
       type: 'MELD_LAID',
       payload: {
         playerId: 'player2',
-        melds: []
-      }
+        melds: [],
+      },
     };
 
     client.processEvent(event);
@@ -70,9 +70,9 @@ describe('TerminalClient MELD_LAID Event Display', () => {
     const event = {
       type: 'MELD_LAID',
       payload: {
-        playerId: 'player2'
+        playerId: 'player2',
         // melds is missing
-      }
+      },
     };
 
     client.processEvent(event);
@@ -89,10 +89,10 @@ describe('TerminalClient MELD_LAID Event Display', () => {
         melds: [
           {
             type: 'set',
-            cards: ['[K♥]', '[K♦]', '[K♣]']
-          }
-        ]
-      }
+            cards: ['[K♥]', '[K♦]', '[K♣]'],
+          },
+        ],
+      },
     };
 
     client.processEvent(event);
@@ -109,10 +109,10 @@ describe('TerminalClient MELD_LAID Event Display', () => {
         melds: [
           {
             type: 'sequence',
-            cards: ['[2♥]', '[3♥]', '[4♥]', '[5♥]']
-          }
-        ]
-      }
+            cards: ['[2♥]', '[3♥]', '[4♥]', '[5♥]'],
+          },
+        ],
+      },
     };
 
     client.processEvent(event);
@@ -129,10 +129,10 @@ describe('TerminalClient MELD_LAID Event Display', () => {
         melds: [
           {
             type: 'set',
-            cards: ['[Q♥]', '[Q♠]', '[Q♦]']
-          }
-        ]
-      }
+            cards: ['[Q♥]', '[Q♠]', '[Q♦]'],
+          },
+        ],
+      },
     };
 
     client.processEvent(event);

@@ -11,7 +11,11 @@
     "legacy-game": "node ./game_runner/Game.js",
     "legacy-server": "node ./index.js",
     "ws-server": "node ./src/server/index-ws.js",
-    "ws-client": "node ./src/clients/terminal/TerminalClient.js"
+    "ws-client": "node ./src/clients/terminal/TerminalClient.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "author": "",
   "license": "ISC",
@@ -24,5 +28,12 @@
     "uuid": "^9.0.0",
     "winston": "^3.18.3",
     "ws": "^8.17.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.37.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2"
   }
 }

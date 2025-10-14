@@ -12,27 +12,30 @@ class GameTestConverter {
    */
   static convertLogToTest(logFilePath) {
     const logContent = fs.readFileSync(logFilePath, 'utf8');
-    
+
     // Winston logs are newline-delimited JSON, parse each line
-    const logLines = logContent.trim().split('\n').map(line => JSON.parse(line));
-    
+    const logLines = logContent
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+
     // Find game_started and game_ended events for metadata
-    const gameStartEvent = logLines.find(log => log.event === 'game_started');
-    const gameEndEvent = logLines.find(log => log.event === 'game_ended');
-    
+    const gameStartEvent = logLines.find((log) => log.event === 'game_started');
+    const gameEndEvent = logLines.find((log) => log.event === 'game_ended');
+
     // Extract game actions
-    const actionLogs = logLines.filter(log => log.event === 'game_action');
-    
+    const actionLogs = logLines.filter((log) => log.event === 'game_action');
+
     if (!gameStartEvent || actionLogs.length === 0) {
       throw new Error('Invalid log file: missing game start or actions');
     }
-    
+
     const gameId = gameStartEvent.gameId;
     const testName = `recorded-game-${gameId}`;
-    
+
     // Extract seed from gameId
-    const seed = this.extractSeedFromLog({ gameId });
-    
+    const seed = this.extractSeedFromLog({gameId});
+
     // Convert log entries to test steps
     const steps = actionLogs.map((logEntry, index) => {
       // Clone the action to avoid mutating original log data
@@ -48,12 +51,12 @@ class GameTestConverter {
         step: index + 1,
         description: this.generateStepDescription(action),
         action: action,
-        expectedEvents: logEntry.events.map(e => e.type),
+        expectedEvents: logEntry.events.map((e) => e.type),
         expectedState: this.extractStateAssertions(logEntry.gameSnapshot),
         // Categorize expectations as success or failure
         expectation: this.categorizeExpectation(logEntry.events),
         // Include full state for debugging if available
-        fullState: logEntry.fullGameSnapshot || null
+        fullState: logEntry.fullGameSnapshot || null,
       };
     });
 
@@ -65,9 +68,9 @@ class GameTestConverter {
         originalLogFile: path.basename(logFilePath),
         recordedAt: gameStartEvent.startTime,
         duration: gameEndEvent ? gameEndEvent.duration : 'unknown',
-        totalSteps: actionLogs.length
+        totalSteps: actionLogs.length,
       },
-      steps: steps
+      steps: steps,
     };
   }
 
@@ -75,8 +78,8 @@ class GameTestConverter {
    * Generate human-readable description for test step
    */
   static generateStepDescription(action) {
-    const { type, playerId, payload } = action;
-    
+    const {type, playerId, payload} = action;
+
     switch (type) {
       case 'JOIN':
         return `Player ${payload.name} joins the game`;
@@ -100,43 +103,43 @@ class GameTestConverter {
   }
 
   /**
-   * Extract state assertions for game state  
+   * Extract state assertions for game state
    */
   static extractStateAssertions(gameSnapshot) {
     const assertions = {};
-    
+
     if (gameSnapshot.currentPlayerIndex !== undefined) {
       assertions.currentPlayerIndex = gameSnapshot.currentPlayerIndex;
     }
-    
+
     if (gameSnapshot.currentRound !== undefined) {
       assertions.currentRound = gameSnapshot.currentRound;
     }
-    
+
     if (gameSnapshot.deckSize !== undefined) {
       assertions.deckSize = gameSnapshot.deckSize;
     }
-    
+
     if (gameSnapshot.burnPileSize !== undefined) {
       assertions.burnPileSize = gameSnapshot.burnPileSize;
     }
-    
+
     if (gameSnapshot.downPilesCount !== undefined) {
       assertions.downPilesCount = gameSnapshot.downPilesCount;
     }
-    
+
     // Player-specific assertions
     if (gameSnapshot.players && gameSnapshot.players.length > 0) {
-      assertions.players = gameSnapshot.players.map(p => ({
+      assertions.players = gameSnapshot.players.map((p) => ({
         id: p.id,
         handSize: p.handSize,
         isDown: p.isDown,
         tookCard: p.tookCard,
         discarded: p.discarded,
-        isOut: p.isOut
+        isOut: p.isOut,
       }));
     }
-    
+
     return assertions;
   }
 
@@ -144,26 +147,33 @@ class GameTestConverter {
    * Categorize the expectation as success or failure based on events
    */
   static categorizeExpectation(events) {
-    const hasError = events.some(e => e.type === 'ERROR');
-    const hasSuccess = events.some(e => 
-      ['CARD_DRAWN', 'CARD_DISCARDED', 'MELD_LAID', 'MELD_EXTENDED', 'TURN_STARTED', 'ROUND_ENDED'].includes(e.type)
+    const hasError = events.some((e) => e.type === 'ERROR');
+    const hasSuccess = events.some((e) =>
+      [
+        'CARD_DRAWN',
+        'CARD_DISCARDED',
+        'MELD_LAID',
+        'MELD_EXTENDED',
+        'TURN_STARTED',
+        'ROUND_ENDED',
+      ].includes(e.type)
     );
-    
+
     if (hasError) {
       return {
         type: 'failure',
-        events: events.map(e => e.type),
-        errorMessage: events.find(e => e.type === 'ERROR')?.payload?.message || 'Unknown error'
+        events: events.map((e) => e.type),
+        errorMessage: events.find((e) => e.type === 'ERROR')?.payload?.message || 'Unknown error',
       };
     } else if (hasSuccess) {
       return {
         type: 'success',
-        events: events.map(e => e.type)
+        events: events.map((e) => e.type),
       };
     } else {
       return {
         type: 'neutral',
-        events: events.map(e => e.type)
+        events: events.map((e) => e.type),
       };
     }
   }
@@ -183,7 +193,7 @@ class GameTestConverter {
    */
   static generateTestFile(logFilePath, testOutputPath) {
     const testSpec = this.convertLogToTest(logFilePath);
-    
+
     const testCode = `const GameEngine = require('../../core/engine/GameEngine');
 const { ActionType } = require('../../core/engine/actions');
 const StateValidator = require('../StateValidator');
@@ -202,7 +212,7 @@ describe('${testSpec.name}', () => {
   });
 
   test('should replay recorded game successfully', async () => {
-${testSpec.steps.map(step => this.generateTestStep(step)).join('\n')}
+${testSpec.steps.map((step) => this.generateTestStep(step)).join('\n')}
   });
 });`;
 
@@ -216,8 +226,8 @@ ${testSpec.steps.map(step => this.generateTestStep(step)).join('\n')}
    */
   static generateTestStep(step) {
     const actionStr = JSON.stringify(step.action, null, 6);
-    const expectedEvents = step.expectedEvents.map(e => `'${e}'`).join(', ');
-    
+    const expectedEvents = step.expectedEvents.map((e) => `'${e}'`).join(', ');
+
     let eventVerification;
     if (step.expectation.type === 'failure') {
       eventVerification = `      // Verify expected failure
@@ -230,7 +240,7 @@ ${testSpec.steps.map(step => this.generateTestStep(step)).join('\n')}
       const eventTypes = events.map(e => e.type);
       expect(eventTypes).toEqual(expect.arrayContaining([${expectedEvents}]));`;
     }
-    
+
     let stateVerification = '';
     if (step.expectation.type === 'success') {
       stateVerification = `
@@ -252,7 +262,7 @@ ${testSpec.steps.map(step => this.generateTestStep(step)).join('\n')}
         console.warn('Post-failure state validation warnings for step ${step.step}:', stateValidation.warnings);
       }`;
     }
-    
+
     return `    // Step ${step.step}: ${step.description} (${step.expectation.type})
     {
       const events = engine.apply(${actionStr});
@@ -266,21 +276,25 @@ ${eventVerification}${stateVerification}
    */
   static generateStateAssertions(expectedState) {
     const assertions = [];
-    
+
     // Ensure expectedState is an object
     if (!expectedState || typeof expectedState !== 'object') {
       return '';
     }
-    
+
     Object.entries(expectedState).forEach(([key, value]) => {
       if (key === 'players' && Array.isArray(value)) {
         assertions.push(`      expect(engine.state.players).toHaveLength(${value.length});`);
         value.forEach((player, index) => {
           Object.entries(player).forEach(([prop, val]) => {
             if (prop === 'handSize') {
-              assertions.push(`      expect(engine.state.players[${index}].hand.cards.length).toBe(${val});`);
+              assertions.push(
+                `      expect(engine.state.players[${index}].hand.cards.length).toBe(${val});`
+              );
             } else if (typeof val === 'string') {
-              assertions.push(`      expect(engine.state.players[${index}].${prop}).toBe('${val}');`);
+              assertions.push(
+                `      expect(engine.state.players[${index}].${prop}).toBe('${val}');`
+              );
             } else {
               assertions.push(`      expect(engine.state.players[${index}].${prop}).toBe(${val});`);
             }
@@ -298,7 +312,7 @@ ${eventVerification}${stateVerification}
         assertions.push(`      expect(engine.state.${key}).toBe(${value});`);
       }
     });
-    
+
     return assertions.join('\n');
   }
 
@@ -312,18 +326,18 @@ ${eventVerification}${stateVerification}
     }
 
     if (!fs.existsSync(testDir)) {
-      fs.mkdirSync(testDir, { recursive: true });
+      fs.mkdirSync(testDir, {recursive: true});
     }
 
-    const logFiles = fs.readdirSync(logDir).filter(file => file.endsWith('.json'));
-    
+    const logFiles = fs.readdirSync(logDir).filter((file) => file.endsWith('.json'));
+
     console.log(`Converting ${logFiles.length} recorded games to tests...`);
-    
-    logFiles.forEach(logFile => {
+
+    logFiles.forEach((logFile) => {
       const logPath = path.join(logDir, logFile);
       const testFileName = `${path.basename(logFile, '.json')}.test.js`;
       const testPath = path.join(testDir, testFileName);
-      
+
       try {
         this.generateTestFile(logPath, testPath);
         console.log(`✅ Converted ${logFile} → ${testFileName}`);

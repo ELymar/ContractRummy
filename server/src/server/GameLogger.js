@@ -13,63 +13,61 @@ class GameLogger {
     this.stepCounter = 0;
     this.setupLogger();
     this.playersLogged = false;
-  // Centralized serializer for card objects (consistent across logs)
-  const CardSerializer = require('../shared/CardSerializer');
-  this.serializeCard = (c) => CardSerializer.serializeForLog(c);
+    // Centralized serializer for card objects (consistent across logs)
+    const CardSerializer = require('../shared/CardSerializer');
+    this.serializeCard = (c) => CardSerializer.serializeForLog(c);
   }
 
   setupLogger() {
     const logDir = path.join(__dirname, '../tests/recorded-games');
     if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
+      fs.mkdirSync(logDir, {recursive: true});
     }
 
     const logFile = path.join(logDir, `${this.gameId}.json`);
 
-    
     // Create Winston logger with multiple transports
     this.logger = winston.createLogger({
       level: 'info',
       format: winston.format.combine(
         winston.format.timestamp(),
-        winston.format.errors({ stack: true }),
+        winston.format.errors({stack: true}),
         winston.format.json()
       ),
-      defaultMeta: { 
+      defaultMeta: {
         gameId: this.gameId,
-        gameStartTime: this.startTime
+        gameStartTime: this.startTime,
       },
       transports: [
         // File transport - JSON format for test generation
-        new winston.transports.File({ 
+        new winston.transports.File({
           filename: logFile,
-          format: winston.format.combine(
-            winston.format.timestamp(),
-            winston.format.json()
-          )
+          format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
         }),
-        
+
         // Console transport - Human readable format
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
-            winston.format.timestamp({ format: 'HH:mm:ss' }),
-            winston.format.printf(({ timestamp, level, message, gameId, step, actionType, playerId, gameTime }) => {
-              if (actionType && playerId) {
-                return `${timestamp} [${level}] [Game ${gameId}] Step ${step} (${gameTime}ms): ${actionType} by ${playerId}`;
+            winston.format.timestamp({format: 'HH:mm:ss'}),
+            winston.format.printf(
+              ({timestamp, level, message, gameId, step, actionType, playerId, gameTime}) => {
+                if (actionType && playerId) {
+                  return `${timestamp} [${level}] [Game ${gameId}] Step ${step} (${gameTime}ms): ${actionType} by ${playerId}`;
+                }
+                return `${timestamp} [${level}] [Game ${gameId}] ${message}`;
               }
-              return `${timestamp} [${level}] [Game ${gameId}] ${message}`;
-            })
-          )
-        })
-      ]
+            )
+          ),
+        }),
+      ],
     });
 
     // Log game start
     this.logger.info('Game started', {
       event: 'game_started',
       gameId: this.gameId,
-      startTime: this.startTime
+      startTime: this.startTime,
     });
   }
 
@@ -83,17 +81,17 @@ class GameLogger {
     const now = Date.now();
     const gameTime = now - this.startTime;
     this.stepCounter++;
-    
+
     // Resolve player index (if possible)
     let playerIndex = undefined;
     try {
-      const idx = gameState?.players?.findIndex(p => p.id === action.playerId);
+      const idx = gameState?.players?.findIndex((p) => p.id === action.playerId);
       playerIndex = idx >= 0 ? idx : undefined;
     } catch (_) {}
 
     // Check if action resulted in error or critical events
-    const hasError = events.some(e => e.type === 'ERROR');
-    const hasCriticalEvent = events.some(e => 
+    const hasError = events.some((e) => e.type === 'ERROR');
+    const hasCriticalEvent = events.some((e) =>
       ['GAME_STARTED', 'MELD_LAID', 'ROUND_ENDED', 'GAME_ENDED'].includes(e.type)
     );
 
@@ -106,10 +104,10 @@ class GameLogger {
       playerIndex,
       turnOwnerIndex: gameState?.currentPlayerIndex,
       action: this.sanitizeAction(action),
-      events: events.map(e => this.sanitizeEvent(e)),
+      events: events.map((e) => this.sanitizeEvent(e)),
       gameSnapshot: this.captureRelevantState(gameState),
       absoluteTimestamp: now,
-      isoTimestamp: new Date(now).toISOString()
+      isoTimestamp: new Date(now).toISOString(),
     };
 
     // Add full game state for errors and critical events for debugging
@@ -127,7 +125,7 @@ class GameLogger {
     }
 
     // If this action produced GAME_STARTED, also log an initial snapshot for deterministic replay
-    if (events?.some(e => e.type === 'GAME_STARTED')) {
+    if (events?.some((e) => e.type === 'GAME_STARTED')) {
       try {
         this.logInitialSnapshot(gameState);
       } catch (_) {
@@ -143,7 +141,7 @@ class GameLogger {
     return {
       type: action.type,
       playerId: action.playerId,
-      payload: action.payload || {}
+      payload: action.payload || {},
     };
   }
 
@@ -153,13 +151,13 @@ class GameLogger {
   sanitizeEvent(event) {
     const sanitized = {
       type: event.type,
-      payload: event.payload || {}
+      payload: event.payload || {},
     };
-    
+
     // Remove timestamps and sequence numbers for test reproducibility
     delete sanitized.ts;
     delete sanitized.seq;
-    
+
     return sanitized;
   }
 
@@ -176,20 +174,21 @@ class GameLogger {
       burnPileSize: gameState.burnPile?.cards?.length || 0,
       burnPileDead: gameState.burnPile?.dead || false,
       downPilesCount: gameState.downPiles?.length || 0,
-      downPiles: (gameState.downPiles || []).map(p => ({
+      downPiles: (gameState.downPiles || []).map((p) => ({
         type: p.type,
         owner: p.owner || p.getOwner?.(),
-        cards: (p.cards || []).map(c => this.serializeCard(c))
+        cards: (p.cards || []).map((c) => this.serializeCard(c)),
       })),
-      players: gameState.players?.map(p => ({
-        id: p.id,
-        name: p.name,
-        handSize: p.hand?.cards?.length || 0,
-        isDown: p.isDown || false,
-        tookCard: p.tookCard || false,
-        discarded: p.discarded || false,
-        isOut: p.isOut || false
-      })) || []
+      players:
+        gameState.players?.map((p) => ({
+          id: p.id,
+          name: p.name,
+          handSize: p.hand?.cards?.length || 0,
+          isDown: p.isDown || false,
+          tookCard: p.tookCard || false,
+          discarded: p.discarded || false,
+          isOut: p.isOut || false,
+        })) || [],
     };
   }
 
@@ -203,43 +202,45 @@ class GameLogger {
       dealerIndex: gameState.dealerIndex,
       currentRound: gameState.currentRound,
       firstTurn: gameState.firstTurn,
-      
+
       // Deck state (full contents)
       deck: {
-        cards: gameState.deck?.cards?.map(c => this.serializeCard(c)) || [],
-        size: gameState.deck?.length?.() || 0
+        cards: gameState.deck?.cards?.map((c) => this.serializeCard(c)) || [],
+        size: gameState.deck?.length?.() || 0,
       },
-      
+
       // Burn pile state (full contents)
       burnPile: {
-        cards: gameState.burnPile?.cards?.map(c => this.serializeCard(c)) || [],
+        cards: gameState.burnPile?.cards?.map((c) => this.serializeCard(c)) || [],
         size: gameState.burnPile?.cards?.length || 0,
         dead: gameState.burnPile?.dead || false,
-        topCard: gameState.burnPile?.cards?.length > 0 
-          ? this.serializeCard(gameState.burnPile.cards[gameState.burnPile.cards.length - 1])
-          : null
+        topCard:
+          gameState.burnPile?.cards?.length > 0
+            ? this.serializeCard(gameState.burnPile.cards[gameState.burnPile.cards.length - 1])
+            : null,
       },
-      
+
       // Down piles (all meld information)
-      downPiles: (gameState.downPiles || []).map(p => ({
+      downPiles: (gameState.downPiles || []).map((p) => ({
         type: p.type,
         owner: p.owner || p.getOwner?.(),
-        cards: (p.cards || []).map(c => this.serializeCard(c))
+        cards: (p.cards || []).map((c) => this.serializeCard(c)),
       })),
-      
+
       // Players with full hand information
-      players: gameState.players?.map(p => ({
-        id: p.id,
-        name: p.name,
-        hand: {
-          cards: p.hand?.cards?.map(c => this.serializeCard(c)) || [],
-          size: p.hand?.cards?.length || 0
-        },
-        isDown: p.isDown || false,
-        tookCard: p.tookCard || false,
-        discarded: p.discarded || false,
-        isOut: p.isOut || false
-      })) || []
+      players:
+        gameState.players?.map((p) => ({
+          id: p.id,
+          name: p.name,
+          hand: {
+            cards: p.hand?.cards?.map((c) => this.serializeCard(c)) || [],
+            size: p.hand?.cards?.length || 0,
+          },
+          isDown: p.isDown || false,
+          tookCard: p.tookCard || false,
+          discarded: p.discarded || false,
+          isOut: p.isOut || false,
+        })) || [],
     };
   }
 
@@ -249,15 +250,15 @@ class GameLogger {
   logGameEnd(winnerInfo = null) {
     const endTime = Date.now();
     const duration = endTime - this.startTime;
-    
+
     this.logger.info('Game ended', {
       event: 'game_ended',
       endTime: endTime,
       duration: duration,
       winner: winnerInfo,
-      isoEndTime: new Date(endTime).toISOString()
+      isoEndTime: new Date(endTime).toISOString(),
     });
-    
+
     // Close the logger transports to ensure all logs are flushed
     // Use the async close helper (best-effort; don't await here)
     this.close().catch(() => {});
@@ -271,7 +272,7 @@ class GameLogger {
       event: 'game_event',
       eventType: eventType,
       gameTime: Date.now() - this.startTime,
-      data: data
+      data: data,
     });
   }
 
@@ -281,14 +282,14 @@ class GameLogger {
   logGameState(reason, gameState) {
     const now = Date.now();
     const gameTime = now - this.startTime;
-    
+
     const logData = {
       event: 'game_state',
       reason: reason,
       gameTime: gameTime,
       gameSnapshot: this.captureRelevantState(gameState),
       absoluteTimestamp: now,
-      isoTimestamp: new Date(now).toISOString()
+      isoTimestamp: new Date(now).toISOString(),
     };
 
     // Log to both console and file via Winston
@@ -302,14 +303,14 @@ class GameLogger {
   logFullGameState(reason, gameState) {
     const now = Date.now();
     const gameTime = now - this.startTime;
-    
+
     const logData = {
       event: 'full_game_state',
       reason: reason,
       gameTime: gameTime,
       fullGameSnapshot: this.captureFullState(gameState),
       absoluteTimestamp: now,
-      isoTimestamp: new Date(now).toISOString()
+      isoTimestamp: new Date(now).toISOString(),
     };
 
     // Log to file only (not console to avoid exposing private info)
@@ -332,12 +333,13 @@ class GameLogger {
       currentPlayerIndex: gameState.currentPlayerIndex,
       currentRound: gameState.currentRound,
       // Deck order from bottom [0] to top [end]; draw() pops from end
-      deck: gameState.deck?.cards?.map(c => this.serializeCard(c)) || [],
-      players: gameState.players?.map(p => ({
-        id: p.id,
-        name: p.name,
-        startingHand: p.hand?.cards?.map(c => this.serializeCard(c)) || []
-      })) || []
+      deck: gameState.deck?.cards?.map((c) => this.serializeCard(c)) || [],
+      players:
+        gameState.players?.map((p) => ({
+          id: p.id,
+          name: p.name,
+          startingHand: p.hand?.cards?.map((c) => this.serializeCard(c)) || [],
+        })) || [],
     };
 
     this.logger.info('Initial snapshot after dealing', snapshot);
@@ -349,11 +351,11 @@ class GameLogger {
   logPlayersJoined(gameState) {
     const now = Date.now();
     const gameTime = now - this.startTime;
-    const players = (gameState.players || []).map((p, index) => ({ index, id: p.id, name: p.name }));
+    const players = (gameState.players || []).map((p, index) => ({index, id: p.id, name: p.name}));
     this.logger.info('Players joined', {
       event: 'players_joined',
       gameTime,
-      players
+      players,
     });
   }
 

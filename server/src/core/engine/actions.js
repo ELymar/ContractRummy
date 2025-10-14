@@ -8,7 +8,7 @@ const ActionType = {
   ADD_TO_MELD: 'ADD_TO_MELD',
   END_TURN: 'END_TURN',
   SORT: 'SORT',
-  QUIT: 'QUIT'
+  QUIT: 'QUIT',
 };
 
-module.exports = { ActionType };
+module.exports = {ActionType};

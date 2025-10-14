@@ -11,7 +11,7 @@ const EventType = {
   PLAYER_QUIT: 'PLAYER_QUIT',
   ROUND_ENDED: 'ROUND_ENDED',
   GAME_ENDED: 'GAME_ENDED',
-  ERROR: 'ERROR'
+  ERROR: 'ERROR',
 };
 
-module.exports = { EventType };
+module.exports = {EventType};

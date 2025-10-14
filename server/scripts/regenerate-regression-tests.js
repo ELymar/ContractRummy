@@ -7,62 +7,63 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const {execSync} = require('child_process');
 
 function main() {
   const regressionDir = path.join(__dirname, '../tests/regression');
-  
+
   if (!fs.existsSync(regressionDir)) {
     console.error('❌ Regression tests directory not found');
     process.exit(1);
   }
-  
+
   // Find all .log.json files
-  const logFiles = fs.readdirSync(regressionDir)
-    .filter(file => file.endsWith('.log.json'))
-    .map(file => file.replace('.log.json', ''));
-  
+  const logFiles = fs
+    .readdirSync(regressionDir)
+    .filter((file) => file.endsWith('.log.json'))
+    .map((file) => file.replace('.log.json', ''));
+
   if (logFiles.length === 0) {
     console.log('📭 No regression test logs found');
     return;
   }
-  
+
   console.log(`🔄 Regenerating ${logFiles.length} regression test(s)...`);
-  
+
   for (const testName of logFiles) {
     console.log(`\n📋 Processing: ${testName}`);
-    
+
     const logFile = path.join(regressionDir, `${testName}.log.json`);
     const tempOutputDir = path.join(__dirname, '../tests/generated');
-    
+
     try {
       // Generate tests to temporary location
       console.log('  🔧 Generating engine test...');
       execSync(`node scripts/convert-logs-to-tests.js --single "${logFile}" --mode engine`, {
         cwd: path.join(__dirname, '..'),
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
-      
+
       console.log('  🌐 Generating integration test...');
       execSync(`node scripts/convert-logs-to-tests.js --single "${logFile}" --mode integration`, {
         cwd: path.join(__dirname, '..'),
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
-      
+
       // Extract the game ID from the log file to find generated files
       const gameId = extractGameIdFromFilename(logFile);
-      
+
       if (!gameId) {
         console.error(`  ❌ Could not determine game ID for ${testName}`);
         continue;
       }
-      
+
       // Copy and update the generated files
       const engineSrc = path.join(tempOutputDir, `${gameId}.engine.test.js`);
       const integrationSrc = path.join(tempOutputDir, `${gameId}.integration.test.js`);
       const engineDest = path.join(regressionDir, `${testName}.engine.test.js`);
       const integrationDest = path.join(regressionDir, `${testName}.integration.test.js`);
-      
+
       if (fs.existsSync(engineSrc)) {
         console.log('  📄 Updating engine test...');
         let engineContent = fs.readFileSync(engineSrc, 'utf8');
@@ -76,7 +77,7 @@ function main() {
         );
         fs.writeFileSync(engineDest, engineContent);
       }
-      
+
       if (fs.existsSync(integrationSrc)) {
         console.log('  📄 Updating integration test...');
         let integrationContent = fs.readFileSync(integrationSrc, 'utf8');
@@ -90,14 +91,13 @@ function main() {
         );
         fs.writeFileSync(integrationDest, integrationContent);
       }
-      
+
       console.log(`  ✅ ${testName} regenerated successfully`);
-      
     } catch (error) {
       console.error(`  ❌ Failed to regenerate ${testName}:`, error.message);
     }
   }
-  
+
   console.log(`\n🎉 Regeneration complete!`);
   console.log(`\nTo run all regression tests:`);
   console.log(`  npm test -- tests/regression/`);
@@ -113,7 +113,7 @@ function extractGameIdFromFilename(logFile) {
       return firstLog.gameId;
     }
   } catch (e) {
-    // Fallback: use filename if structured properly  
+    // Fallback: use filename if structured properly
     const basename = path.basename(logFile, '.log.json');
     return basename;
   }

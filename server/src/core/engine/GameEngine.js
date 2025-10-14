@@ -1,14 +1,14 @@
-const { ActionType } = require('./actions');
-const { EventType } = require('./events');
+const {ActionType} = require('./actions');
+const {EventType} = require('./events');
 const GameState = require('../domain/GameState');
 const Hand = require('../domain/Hand');
 const RoundDealing = require('../rules/RoundDealing');
 const DownPile = require('../domain/DownPile');
-const { isValidDupes, isValidSequence } = require('../utils/Utils');
-const { getContractForRound } = require('../rules/RoundContract');
+const {isValidDupes, isValidSequence} = require('../utils/Utils');
+const {getContractForRound} = require('../rules/RoundContract');
 const ScoreKeeper = require('../../shared/ScoreKeeper');
 const CardScoring = require('../rules/CardScoring');
-const { v4: uuid } = require('uuid');
+const {v4: uuid} = require('uuid');
 
 // Action Handlers
 const JoinHandler = require('./handlers/JoinHandler');
@@ -22,7 +22,7 @@ const EndTurnHandler = require('./handlers/EndTurnHandler');
 const QuitHandler = require('./handlers/QuitHandler');
 
 class GameEngine {
-  constructor({ rng = Math.random } = {}) {
+  constructor({rng = Math.random} = {}) {
     this.rng = rng;
     this.state = new GameState(rng);
     this.gameId = uuid();
@@ -30,7 +30,7 @@ class GameEngine {
     this.state.started = false;
     this.scoreKeeper = null; // Will be initialized when game starts
     this.pendingStateEvents = []; // Collect events from GameState during action processing
-    
+
     // Initialize action handlers
     this.handlers = new Map([
       [ActionType.JOIN, new JoinHandler(this)],
@@ -41,9 +41,9 @@ class GameEngine {
       [ActionType.LAY_DOWN, new LayDownHandler(this)],
       [ActionType.ADD_TO_MELD, new AddToMeldHandler(this)],
       [ActionType.END_TURN, new EndTurnHandler(this)],
-      [ActionType.QUIT, new QuitHandler(this)]
+      [ActionType.QUIT, new QuitHandler(this)],
     ]);
-    
+
     // Listen to GameState events and collect them
     this.state.on('deck-reshuffled', (data) => {
       this.pendingStateEvents.push(this.emit(EventType.DECK_RESHUFFLED, data));
@@ -51,7 +51,7 @@ class GameEngine {
   }
 
   emit(type, payload = {}) {
-    const evt = { type, payload, seq: ++this.seq, ts: Date.now() };
+    const evt = {type, payload, seq: ++this.seq, ts: Date.now()};
     return evt;
   }
 
@@ -68,21 +68,21 @@ class GameEngine {
       id: p.id ?? i,
       name: p.name,
       handCount: p.hand?.cards?.length ?? 0,
-      isDown: p.isDown ?? false
+      isDown: p.isDown ?? false,
     }));
-    const you = (s.players || []).find(p => p.id === playerId) || null;
-    const isYourTurn = (s.players[s.currentPlayerIndex]?.id === playerId);
-    
+    const you = (s.players || []).find((p) => p.id === playerId) || null;
+    const isYourTurn = s.players[s.currentPlayerIndex]?.id === playerId;
+
     return {
       gameId: this.gameId,
       players,
       yourHand: you?.hand?.cards ?? [],
       burnTop: s.burnPile?.topCard?.() ?? null,
       burnPileAvailable: s.burnPile?.cards?.length > 0 && !s.burnPile?.dead,
-      downPiles: (s.downPiles ?? []).map(pile => ({
+      downPiles: (s.downPiles ?? []).map((pile) => ({
         type: pile.type,
         owner: pile.getOwner?.() || pile.owner || 'Unknown',
-        cards: pile.cards || []
+        cards: pile.cards || [],
       })),
       currentPlayerIndex: s.currentPlayerIndex ?? 0,
       dealerIndex: s.dealerIndex ?? 0,
@@ -93,7 +93,7 @@ class GameEngine {
       youAreDown: you?.isDown ?? false,
       tookCard: you?.tookCard ?? false,
       discarded: you?.discarded ?? false,
-      validActions: isYourTurn ? this.getValidActionsFor(playerId) : []
+      validActions: isYourTurn ? this.getValidActionsFor(playerId) : [],
     };
   }
 
@@ -110,7 +110,7 @@ class GameEngine {
     // Drawing phase actions (if haven't drawn and not first turn)
     if (!player.tookCard && !this.state.firstTurn) {
       validActions.push('DRAW');
-      
+
       // Can take from discard if available AND player is not already down
       // Once a player is down, they can only draw from deck
       if (this.state.burnPile?.cards?.length > 0 && !this.state.burnPile?.dead && !player.isDown) {
@@ -122,12 +122,12 @@ class GameEngine {
     if (player.tookCard || this.state.firstTurn) {
       // Can always discard (to end turn)
       validActions.push('DISCARD');
-      
+
       // Can lay down if not already down and have drawn
       if (!player.isDown && player.tookCard) {
         validActions.push('LAY_DOWN');
       }
-      
+
       // Can add to melds if already down and there are melds on table
       if (player.isDown && this.state.downPiles?.length > 0) {
         validActions.push('ADD_TO_MELD');
@@ -153,7 +153,7 @@ class GameEngine {
     const evts = [];
     // If scoreKeeper says game complete, do not start next round
     if (this.scoreKeeper && this.scoreKeeper.isGameComplete()) {
-      evts.push(this.emit(EventType.GAME_ENDED, { scoreTable: this.scoreKeeper.getScoreTable?.() }));
+      evts.push(this.emit(EventType.GAME_ENDED, {scoreTable: this.scoreKeeper.getScoreTable?.()}));
       return evts;
     }
 
@@ -167,9 +167,9 @@ class GameEngine {
     this.state.currentPlayerIndex = (this.state.dealerIndex + 1) % joinedPlayers.length;
     this.state.firstTurn = true;
     this.state.started = true;
-    
+
     // Reattach players with fresh hands/flags
-    this.state.players = joinedPlayers.map(p => ({
+    this.state.players = joinedPlayers.map((p) => ({
       id: p.id,
       name: p.name,
       hand: new Hand(),
@@ -177,15 +177,17 @@ class GameEngine {
       tookCard: false,
       discarded: false,
       isOut: false,
-      quit: false
+      quit: false,
     }));
 
     // Deal for new round
     try {
       const deal = RoundDealing.getCardsForRound(this.state.currentRound, this.state.dealerIndex);
       // Assuming two players for now; extend as needed for more players
-      if (this.state.players[0]) this.state.players[0].hand.addCards(this.state.drawFromDeck(deal.player1Cards));
-      if (this.state.players[1]) this.state.players[1].hand.addCards(this.state.drawFromDeck(deal.player2Cards));
+      if (this.state.players[0])
+        this.state.players[0].hand.addCards(this.state.drawFromDeck(deal.player1Cards));
+      if (this.state.players[1])
+        this.state.players[1].hand.addCards(this.state.drawFromDeck(deal.player2Cards));
     } catch (_) {
       // Fallback: deal 10/11 alternating depending on dealer
       if (this.state.players.length >= 2) {
@@ -195,98 +197,98 @@ class GameEngine {
       }
     }
 
-    evts.push(this.emit(EventType.GAME_STARTED, { round: this.state.currentRound }));
-    evts.push(this.emit(EventType.TURN_STARTED, { playerIndex: this.state.currentPlayerIndex }));
+    evts.push(this.emit(EventType.GAME_STARTED, {round: this.state.currentRound}));
+    evts.push(this.emit(EventType.TURN_STARTED, {playerIndex: this.state.currentPlayerIndex}));
     return evts;
   }
-
 
   // Helper method to validate turn and get current player
   validateTurn(playerId) {
     const currentPlayer = this.state.players[this.state.currentPlayerIndex];
     if (!currentPlayer || currentPlayer.id !== playerId) {
-      return { error: 'Not your turn' };
+      return {error: 'Not your turn'};
     }
-    return { player: currentPlayer };
+    return {player: currentPlayer};
   }
 
   // Helper method to find player by ID
   findPlayer(playerId) {
-    return this.state.players.find(p => p.id === playerId);
+    return this.state.players.find((p) => p.id === playerId);
   }
 
   // Validate that player owns the specified cards
   validatePlayerOwnsCards(player, cardIndices) {
     if (!player.hand || !player.hand.cards) {
-      return { error: 'Player has no cards' };
+      return {error: 'Player has no cards'};
     }
-    
+
     for (const idx of cardIndices) {
       if (idx < 0 || idx >= player.hand.cards.length) {
-        return { error: `Invalid card index: ${idx}` };
+        return {error: `Invalid card index: ${idx}`};
       }
     }
-    
+
     // Check for duplicate indices
     const uniqueIndices = new Set(cardIndices);
     if (uniqueIndices.size !== cardIndices.length) {
-      return { error: 'Cannot use the same card twice' };
+      return {error: 'Cannot use the same card twice'};
     }
-    
-    return { valid: true };
-  }
 
+    return {valid: true};
+  }
 
   // Find card by UUID and return its index in player's hand
   findCardByUuid(player, cardUuid) {
     if (!player.hand || !player.hand.cards) {
-      return { error: 'Player has no cards' };
+      return {error: 'Player has no cards'};
     }
 
     if (!cardUuid) {
-      return { error: 'No card UUID provided' };
+      return {error: 'No card UUID provided'};
     }
 
-    const cardIndex = player.hand.cards.findIndex(card => card.uuid === cardUuid);
+    const cardIndex = player.hand.cards.findIndex((card) => card.uuid === cardUuid);
     if (cardIndex === -1) {
-      return { error: 'Player does not own that card' };
+      return {error: 'Player does not own that card'};
     }
 
-    return { cardIndex, card: player.hand.cards[cardIndex] };
+    return {cardIndex, card: player.hand.cards[cardIndex]};
   }
 
   // Handle round end with scoring and progression
   handleRoundEnd(winnerPlayerId, reason = null) {
     const winner = this.findPlayer(winnerPlayerId);
     const evts = [];
-    
+
     // Calculate scores for all players
     const playerHands = {};
-    this.state.players.forEach(player => {
+    this.state.players.forEach((player) => {
       playerHands[player.name] = player.hand.cards;
     });
-    
+
     // Record scores in ScoreKeeper
     if (this.scoreKeeper) {
       this.scoreKeeper.recordRoundScore(this.state.currentRound, playerHands, winner.name);
     }
-    
+
     // Emit round ended event with scoring
     const roundScores = {};
-    this.state.players.forEach(player => {
+    this.state.players.forEach((player) => {
       roundScores[player.name] = CardScoring.scoreHand(player.hand.cards);
     });
-    
-    evts.push(this.emit(EventType.ROUND_ENDED, { 
-      winner: winnerPlayerId, 
-      winnerName: winner.name,
-      reason: reason,
-      roundNumber: this.state.currentRound,
-      scores: roundScores,
-      scoreTable: this.scoreKeeper ? this.scoreKeeper.getScoreTable() : null,
-      gameComplete: this.scoreKeeper ? this.scoreKeeper.isGameComplete() : false
-    }));
-    
+
+    evts.push(
+      this.emit(EventType.ROUND_ENDED, {
+        winner: winnerPlayerId,
+        winnerName: winner.name,
+        reason: reason,
+        roundNumber: this.state.currentRound,
+        scores: roundScores,
+        scoreTable: this.scoreKeeper ? this.scoreKeeper.getScoreTable() : null,
+        gameComplete: this.scoreKeeper ? this.scoreKeeper.isGameComplete() : false,
+      })
+    );
+
     return evts;
   }
 
@@ -295,42 +297,42 @@ class GameEngine {
     try {
       let totalCards = this.state.deck.length();
       totalCards += this.state.burnPile.cards.length;
-      
+
       // Count cards in player hands
       for (const player of this.state.players) {
         if (player.hand && player.hand.cards) {
           totalCards += player.hand.cards.length;
         }
       }
-      
+
       // Count cards in down piles
       for (const pile of this.state.downPiles) {
         if (pile.cards) {
           totalCards += pile.cards.length;
         }
       }
-      
+
       // Should equal 56 for single deck + 4 jokers
       const expectedTotal = 56;
       if (totalCards !== expectedTotal) {
         console.warn(`Game state inconsistency: ${totalCards} cards, expected ${expectedTotal}`);
-        return { error: `Card count mismatch: ${totalCards}/${expectedTotal}` };
+        return {error: `Card count mismatch: ${totalCards}/${expectedTotal}`};
       }
-      
-      return { valid: true };
+
+      return {valid: true};
     } catch (error) {
-      return { error: `State validation failed: ${error.message}` };
+      return {error: `State validation failed: ${error.message}`};
     }
   }
 
   apply(command) {
-    const { type, playerId, payload = {} } = command;
-    
+    const {type, playerId, payload = {}} = command;
+
     // Get handler for action type
     const handler = this.handlers.get(type);
     if (!handler) {
       return this.collectEvents([
-        this.emit(EventType.ERROR, { message: `Unknown action type: ${type}` })
+        this.emit(EventType.ERROR, {message: `Unknown action type: ${type}`}),
       ]);
     }
 

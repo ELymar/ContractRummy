@@ -8,3 +8,6 @@ src/tests/recorded-games/*.json
 
 # Keep the regression test files but ignore the source recorded games
 !tests/regression/*.json
+
+# ESLint cache
+.eslintcache

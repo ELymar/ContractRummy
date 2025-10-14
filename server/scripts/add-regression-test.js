@@ -30,44 +30,56 @@ This will:
 
 function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length !== 2 || args.includes('--help') || args.includes('-h')) {
     showUsage();
     process.exit(args.includes('--help') || args.includes('-h') ? 0 : 1);
   }
-  
+
   const [gameId, testName] = args;
-  
+
   const logSrc = path.join(__dirname, '../tests/recorded-games', `${gameId}.json`);
   const engineSrc = path.join(__dirname, '../tests/generated', `${gameId}.engine.test.js`);
-  const integrationSrc = path.join(__dirname, '../tests/generated', `${gameId}.integration.test.js`);
-  
+  const integrationSrc = path.join(
+    __dirname,
+    '../tests/generated',
+    `${gameId}.integration.test.js`
+  );
+
   const logDest = path.join(__dirname, '../tests/regression', `${testName}.log.json`);
   const engineDest = path.join(__dirname, '../tests/regression', `${testName}.engine.test.js`);
-  const integrationDest = path.join(__dirname, '../tests/regression', `${testName}.integration.test.js`);
-  
+  const integrationDest = path.join(
+    __dirname,
+    '../tests/regression',
+    `${testName}.integration.test.js`
+  );
+
   // Check source files exist
   if (!fs.existsSync(logSrc)) {
     console.error(`❌ Log file not found: ${logSrc}`);
     process.exit(1);
   }
-  
+
   if (!fs.existsSync(engineSrc)) {
     console.error(`❌ Engine test not found: ${engineSrc}`);
-    console.log(`💡 Generate it first: node scripts/convert-logs-to-tests.js --single ${gameId}.json --mode engine`);
+    console.log(
+      `💡 Generate it first: node scripts/convert-logs-to-tests.js --single ${gameId}.json --mode engine`
+    );
     process.exit(1);
   }
-  
+
   if (!fs.existsSync(integrationSrc)) {
     console.error(`❌ Integration test not found: ${integrationSrc}`);
-    console.log(`💡 Generate it first: node scripts/convert-logs-to-tests.js --single ${gameId}.json --mode integration`);
+    console.log(
+      `💡 Generate it first: node scripts/convert-logs-to-tests.js --single ${gameId}.json --mode integration`
+    );
     process.exit(1);
   }
-  
+
   // Copy log file
   console.log(`📄 Copying log: ${path.basename(logSrc)} → ${path.basename(logDest)}`);
   fs.copyFileSync(logSrc, logDest);
-  
+
   // Copy and update engine test
   console.log(`🔧 Copying engine test: ${path.basename(engineSrc)} → ${path.basename(engineDest)}`);
   let engineContent = fs.readFileSync(engineSrc, 'utf8');
@@ -80,9 +92,11 @@ function main() {
     `Regression test: ${testName} (engine)`
   );
   fs.writeFileSync(engineDest, engineContent);
-  
-  // Copy and update integration test  
-  console.log(`🌐 Copying integration test: ${path.basename(integrationSrc)} → ${path.basename(integrationDest)}`);
+
+  // Copy and update integration test
+  console.log(
+    `🌐 Copying integration test: ${path.basename(integrationSrc)} → ${path.basename(integrationDest)}`
+  );
   let integrationContent = fs.readFileSync(integrationSrc, 'utf8');
   integrationContent = integrationContent.replace(
     new RegExp(`Integration replay from log ${gameId}.json`),
@@ -93,7 +107,7 @@ function main() {
     `replays ${testName} scenario deterministically`
   );
   fs.writeFileSync(integrationDest, integrationContent);
-  
+
   console.log(`\n✅ Regression test '${testName}' created successfully!`);
   console.log(`\nTo run:`);
   console.log(`  npm test -- tests/regression/${testName}`);

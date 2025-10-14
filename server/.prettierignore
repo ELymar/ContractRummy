@@ -1,0 +1,5 @@
+node_modules/
+*.log
+tests/recorded-games/*.json
+src/tests/recorded-games/*.json
+tests/regression/*.json

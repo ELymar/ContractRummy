@@ -1,5 +1,5 @@
 const ActionHandler = require('./ActionHandler');
-const { EventType } = require('../events');
+const {EventType} = require('../events');
 const Hand = require('../../domain/Hand');
 
 /**
@@ -8,8 +8,8 @@ const Hand = require('../../domain/Hand');
 class JoinHandler extends ActionHandler {
   handle(playerId, payload) {
     const name = payload.name || 'Player';
-    
-    if (!this.state.players.find(p => p.id === playerId)) {
+
+    if (!this.state.players.find((p) => p.id === playerId)) {
       this.state.players.push({
         id: playerId,
         name,
@@ -17,12 +17,12 @@ class JoinHandler extends ActionHandler {
         isDown: false,
         tookCard: false,
         discarded: false,
-        isOut: false
+        isOut: false,
       });
-      
-      return [this.emit(EventType.PLAYER_JOINED, { playerId, name })];
+
+      return [this.emit(EventType.PLAYER_JOINED, {playerId, name})];
     }
-    
+
     return [];
   }
 }

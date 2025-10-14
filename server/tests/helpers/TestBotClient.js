@@ -22,13 +22,13 @@ class TestBotClient {
         if (Array.isArray(msg.events)) this.events.push(...msg.events);
         this.view = msg.snapshot?.view;
         // resolve waiters
-        this.pendingUpdateResolvers.forEach(r => r());
+        this.pendingUpdateResolvers.forEach((r) => r());
         this.pendingUpdateResolvers = [];
         // If it's our turn and we have a step queued, try to act
         this.maybeAct();
       }
     });
-    await new Promise(res => this.ws.once('open', res));
+    await new Promise((res) => this.ws.once('open', res));
   }
 
   enqueue(step) {
@@ -41,20 +41,25 @@ class TestBotClient {
   }
 
   sendCommand(type, payload = {}) {
-    this.ws.send(JSON.stringify({ kind: 'command', command: { type, playerId: this.playerId, payload } }));
+    this.ws.send(
+      JSON.stringify({kind: 'command', command: {type, playerId: this.playerId, payload}})
+    );
   }
 
   async waitForUpdate(timeoutMs = 3000) {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       const t = setTimeout(resolve, timeoutMs);
-      this.pendingUpdateResolvers.push(() => { clearTimeout(t); resolve(); });
+      this.pendingUpdateResolvers.push(() => {
+        clearTimeout(t);
+        resolve();
+      });
     });
   }
 
   // Convert a cardRef to index based on current hand; include handOrder in payloads
   resolveCardIndex(cardRef) {
     const hand = this.view?.yourHand || [];
-    const idx = hand.findIndex(c => this.cardMatches(c, cardRef));
+    const idx = hand.findIndex((c) => this.cardMatches(c, cardRef));
     return idx;
   }
 
@@ -83,27 +88,27 @@ class TestBotClient {
         if (step.payload?.source === 'discard') {
           this.sendCommand('TAKE_FROM_DISCARD');
         } else {
-          this.sendCommand('DRAW', { nCards: 1 });
+          this.sendCommand('DRAW', {nCards: 1});
         }
         break;
       }
       case 'DISCARD': {
         const cardIndex = this.resolveCardIndex(step.payload.card);
-        this.sendCommand('DISCARD', { cardIndex, handOrder });
+        this.sendCommand('DISCARD', {cardIndex, handOrder});
         break;
       }
       case 'LAY_DOWN': {
-        const melds = step.payload.melds.map(m => ({
+        const melds = step.payload.melds.map((m) => ({
           type: m.type,
-          cardIndices: m.cards.map(ref => this.resolveCardIndex(ref))
+          cardIndices: m.cards.map((ref) => this.resolveCardIndex(ref)),
         }));
-        this.sendCommand('LAY_DOWN', { melds, handOrder });
+        this.sendCommand('LAY_DOWN', {melds, handOrder});
         break;
       }
       case 'ADD_TO_MELD': {
         const cardIndex = this.resolveCardIndex(step.payload.card);
-        const { meldIndex, position } = step.payload;
-        this.sendCommand('ADD_TO_MELD', { meldIndex, position, cardIndex, handOrder });
+        const {meldIndex, position} = step.payload;
+        this.sendCommand('ADD_TO_MELD', {meldIndex, position, cardIndex, handOrder});
         break;
       }
       case 'END_TURN': {
@@ -129,7 +134,7 @@ class TestBotClient {
 
   async close() {
     if (this.ws && this.ws.readyState === this.ws.OPEN) {
-      await new Promise(res => {
+      await new Promise((res) => {
         this.ws.once('close', res);
         this.ws.close(1000, 'test-end');
       });

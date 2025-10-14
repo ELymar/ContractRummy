@@ -1,5 +1,5 @@
 const ActionHandler = require('./ActionHandler');
-const { EventType } = require('../events');
+const {EventType} = require('../events');
 const Hand = require('../../domain/Hand');
 
 /**
@@ -12,19 +12,19 @@ class ReadyHandler extends ActionHandler {
     }
 
     const evts = [];
-    
+
     // Initialize game state
     const joinedPlayers = this.state.players;
     this.state.initialize();
-    
+
     // Restore players with proper state
-    this.state.players = joinedPlayers.map(p => ({
+    this.state.players = joinedPlayers.map((p) => ({
       ...p,
       hand: p.hand instanceof Hand ? p.hand : new Hand(),
       isDown: false,
       tookCard: false,
       discarded: false,
-      isOut: false
+      isOut: false,
     }));
 
     // Initialize game settings
@@ -39,14 +39,16 @@ class ReadyHandler extends ActionHandler {
 
     // Initialize score keeping
     const ScoreKeeper = require('../../../shared/ScoreKeeper');
-    const playerNames = this.state.players.map(p => p.name);
+    const playerNames = this.state.players.map((p) => p.name);
     this.engine.scoreKeeper = new ScoreKeeper(playerNames, 7); // 7 rounds in Contract Rummy
 
     // Emit game start events
-    evts.push(this.emit(EventType.GAME_STARTED, { round: this.state.currentRound }));
-    evts.push(this.emit(EventType.TURN_STARTED, { 
-      playerIndex: this.state.currentPlayerIndex 
-    }));
+    evts.push(this.emit(EventType.GAME_STARTED, {round: this.state.currentRound}));
+    evts.push(
+      this.emit(EventType.TURN_STARTED, {
+        playerIndex: this.state.currentPlayerIndex,
+      })
+    );
 
     return evts;
   }
@@ -55,7 +57,7 @@ class ReadyHandler extends ActionHandler {
     try {
       const RoundDealing = require('../../rules/RoundDealing');
       const deal = RoundDealing.getCardsForRound(this.state.currentRound, this.state.dealerIndex);
-      
+
       const p0 = this.state.players[0];
       const p1 = this.state.players[1];
       p0.hand.addCards(this.state.drawFromDeck(deal.player1Cards));

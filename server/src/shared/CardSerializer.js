@@ -11,7 +11,9 @@ class CardSerializer {
     if (!card && card !== 0) return String(card);
     if (typeof card === 'string') return card;
     if (typeof card.toString === 'function') {
-      try { return card.toString(); } catch (_) {}
+      try {
+        return card.toString();
+      } catch (_) {}
     }
     // Fallback to DisplayUtils formatting (bracketed representation)
     return DisplayUtils.formatCard(card);

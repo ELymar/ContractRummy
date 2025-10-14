@@ -5,6 +5,7 @@ This directory contains curated log/test pairs that are committed to version con
 ## Structure
 
 Each test case should have:
+
 - `{name}.log.json` - The recorded game log
 - `{name}.engine.test.js` - Generated engine test
 - `{name}.integration.test.js` - Generated integration test

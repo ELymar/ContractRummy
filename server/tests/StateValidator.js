@@ -12,7 +12,7 @@ class StateValidator {
     const results = {
       success: true,
       errors: [],
-      warnings: []
+      warnings: [],
     };
 
     if (!expectedSnapshot) {
@@ -22,16 +22,16 @@ class StateValidator {
 
     // Validate basic game state
     this.validateBasicState(actualState, expectedSnapshot, results);
-    
+
     // Validate deck state
     this.validateDeckState(actualState, expectedSnapshot, results);
-    
+
     // Validate burn pile state
     this.validateBurnPileState(actualState, expectedSnapshot, results);
-    
+
     // Validate down piles
     this.validateDownPiles(actualState, expectedSnapshot, results);
-    
+
     // Validate players
     this.validatePlayers(actualState, expectedSnapshot, results);
 
@@ -46,14 +46,16 @@ class StateValidator {
       ['currentPlayerIndex', 'Current player index'],
       ['currentRound', 'Current round'],
       ['dealerIndex', 'Dealer index'],
-      ['firstTurn', 'First turn flag']
+      ['firstTurn', 'First turn flag'],
     ];
 
     checks.forEach(([prop, desc]) => {
       if (expectedSnapshot[prop] !== undefined) {
         if (actualState[prop] !== expectedSnapshot[prop]) {
           results.success = false;
-          results.errors.push(`${desc} mismatch: expected ${expectedSnapshot[prop]}, got ${actualState[prop]}`);
+          results.errors.push(
+            `${desc} mismatch: expected ${expectedSnapshot[prop]}, got ${actualState[prop]}`
+          );
         }
       }
     });
@@ -67,7 +69,9 @@ class StateValidator {
       const actualDeckSize = actualState.deck?.length?.() || 0;
       if (actualDeckSize !== expectedSnapshot.deckSize) {
         results.success = false;
-        results.errors.push(`Deck size mismatch: expected ${expectedSnapshot.deckSize}, got ${actualDeckSize}`);
+        results.errors.push(
+          `Deck size mismatch: expected ${expectedSnapshot.deckSize}, got ${actualDeckSize}`
+        );
       }
     }
   }
@@ -80,7 +84,9 @@ class StateValidator {
       const actualBurnPileSize = actualState.burnPile?.cards?.length || 0;
       if (actualBurnPileSize !== expectedSnapshot.burnPileSize) {
         results.success = false;
-        results.errors.push(`Burn pile size mismatch: expected ${expectedSnapshot.burnPileSize}, got ${actualBurnPileSize}`);
+        results.errors.push(
+          `Burn pile size mismatch: expected ${expectedSnapshot.burnPileSize}, got ${actualBurnPileSize}`
+        );
       }
     }
 
@@ -88,7 +94,9 @@ class StateValidator {
       const actualBurnPileDead = actualState.burnPile?.dead || false;
       if (actualBurnPileDead !== expectedSnapshot.burnPileDead) {
         results.success = false;
-        results.errors.push(`Burn pile dead state mismatch: expected ${expectedSnapshot.burnPileDead}, got ${actualBurnPileDead}`);
+        results.errors.push(
+          `Burn pile dead state mismatch: expected ${expectedSnapshot.burnPileDead}, got ${actualBurnPileDead}`
+        );
       }
     }
   }
@@ -101,7 +109,9 @@ class StateValidator {
       const actualDownPilesCount = actualState.downPiles?.length || 0;
       if (actualDownPilesCount !== expectedSnapshot.downPilesCount) {
         results.success = false;
-        results.errors.push(`Down piles count mismatch: expected ${expectedSnapshot.downPilesCount}, got ${actualDownPilesCount}`);
+        results.errors.push(
+          `Down piles count mismatch: expected ${expectedSnapshot.downPilesCount}, got ${actualDownPilesCount}`
+        );
       }
     }
 
@@ -115,21 +125,27 @@ class StateValidator {
         }
 
         if (expectedPile.type && actualPile.type !== expectedPile.type) {
-          results.warnings.push(`Down pile ${index} type mismatch: expected ${expectedPile.type}, got ${actualPile.type}`);
+          results.warnings.push(
+            `Down pile ${index} type mismatch: expected ${expectedPile.type}, got ${actualPile.type}`
+          );
         }
 
         if (expectedPile.owner) {
           const actualOwner = actualPile.owner || actualPile.getOwner?.();
           if (actualOwner !== expectedPile.owner) {
-            results.warnings.push(`Down pile ${index} owner mismatch: expected ${expectedPile.owner}, got ${actualOwner}`);
+            results.warnings.push(
+              `Down pile ${index} owner mismatch: expected ${expectedPile.owner}, got ${actualOwner}`
+            );
           }
         }
 
         if (expectedPile.cards) {
-          const actualCards = (actualPile.cards || []).map(c => c.toString?.() || String(c));
+          const actualCards = (actualPile.cards || []).map((c) => c.toString?.() || String(c));
           if (actualCards.length !== expectedPile.cards.length) {
             results.success = false;
-            results.errors.push(`Down pile ${index} card count mismatch: expected ${expectedPile.cards.length}, got ${actualCards.length}`);
+            results.errors.push(
+              `Down pile ${index} card count mismatch: expected ${expectedPile.cards.length}, got ${actualCards.length}`
+            );
           }
         }
       });
@@ -146,7 +162,9 @@ class StateValidator {
 
     if (expectedSnapshot.players.length !== actualState.players.length) {
       results.success = false;
-      results.errors.push(`Player count mismatch: expected ${expectedSnapshot.players.length}, got ${actualState.players.length}`);
+      results.errors.push(
+        `Player count mismatch: expected ${expectedSnapshot.players.length}, got ${actualState.players.length}`
+      );
       return;
     }
 
@@ -165,14 +183,16 @@ class StateValidator {
         ['isDown', 'Player down status'],
         ['tookCard', 'Player took card status'],
         ['discarded', 'Player discarded status'],
-        ['isOut', 'Player out status']
+        ['isOut', 'Player out status'],
       ];
 
       playerChecks.forEach(([prop, desc]) => {
         if (expectedPlayer[prop] !== undefined) {
           if (actualPlayer[prop] !== expectedPlayer[prop]) {
             results.success = false;
-            results.errors.push(`${desc} mismatch for player ${index}: expected ${expectedPlayer[prop]}, got ${actualPlayer[prop]}`);
+            results.errors.push(
+              `${desc} mismatch for player ${index}: expected ${expectedPlayer[prop]}, got ${actualPlayer[prop]}`
+            );
           }
         }
       });
@@ -182,7 +202,9 @@ class StateValidator {
         const actualHandSize = actualPlayer.hand?.cards?.length || 0;
         if (actualHandSize !== expectedPlayer.handSize) {
           results.success = false;
-          results.errors.push(`Hand size mismatch for player ${index}: expected ${expectedPlayer.handSize}, got ${actualHandSize}`);
+          results.errors.push(
+            `Hand size mismatch for player ${index}: expected ${expectedPlayer.handSize}, got ${actualHandSize}`
+          );
         }
       }
     });
@@ -193,13 +215,13 @@ class StateValidator {
    */
   static validateFullState(actualState, expectedFullSnapshot) {
     if (!expectedFullSnapshot) {
-      return { success: true, warnings: ['No full state snapshot available for validation'] };
+      return {success: true, warnings: ['No full state snapshot available for validation']};
     }
 
     const results = {
       success: true,
       errors: [],
-      warnings: []
+      warnings: [],
     };
 
     // First run basic validation
@@ -210,12 +232,16 @@ class StateValidator {
 
     // Validate full deck contents if available
     if (expectedFullSnapshot.deck?.cards) {
-      const actualDeckCards = (actualState.deck?.cards || []).map(c => c.toString?.() || String(c));
+      const actualDeckCards = (actualState.deck?.cards || []).map(
+        (c) => c.toString?.() || String(c)
+      );
       const expectedDeckCards = expectedFullSnapshot.deck.cards;
-      
+
       if (actualDeckCards.length !== expectedDeckCards.length) {
         results.success = false;
-        results.errors.push(`Full deck size mismatch: expected ${expectedDeckCards.length}, got ${actualDeckCards.length}`);
+        results.errors.push(
+          `Full deck size mismatch: expected ${expectedDeckCards.length}, got ${actualDeckCards.length}`
+        );
       } else {
         // Check for card order differences (may indicate RNG divergence)
         let differentCards = 0;
@@ -225,7 +251,9 @@ class StateValidator {
           }
         }
         if (differentCards > 0) {
-          results.warnings.push(`Deck order divergence: ${differentCards}/${actualDeckCards.length} cards in different positions`);
+          results.warnings.push(
+            `Deck order divergence: ${differentCards}/${actualDeckCards.length} cards in different positions`
+          );
         }
       }
     }
@@ -236,21 +264,27 @@ class StateValidator {
         if (expectedPlayer.hand?.cards) {
           const actualPlayer = actualState.players[index];
           if (actualPlayer) {
-            const actualHand = (actualPlayer.hand?.cards || []).map(c => c.toString?.() || String(c));
+            const actualHand = (actualPlayer.hand?.cards || []).map(
+              (c) => c.toString?.() || String(c)
+            );
             const expectedHand = expectedPlayer.hand.cards;
-            
+
             if (actualHand.length !== expectedHand.length) {
               results.success = false;
-              results.errors.push(`Player ${index} hand size mismatch: expected ${expectedHand.length}, got ${actualHand.length}`);
+              results.errors.push(
+                `Player ${index} hand size mismatch: expected ${expectedHand.length}, got ${actualHand.length}`
+              );
             } else {
               // Check for hand content differences
               const actualHandSet = new Set(actualHand);
               const expectedHandSet = new Set(expectedHand);
-              const missing = expectedHand.filter(card => !actualHandSet.has(card));
-              const extra = actualHand.filter(card => !expectedHandSet.has(card));
-              
+              const missing = expectedHand.filter((card) => !actualHandSet.has(card));
+              const extra = actualHand.filter((card) => !expectedHandSet.has(card));
+
               if (missing.length > 0 || extra.length > 0) {
-                results.warnings.push(`Player ${index} hand content divergence: missing [${missing.join(', ')}], extra [${extra.join(', ')}]`);
+                results.warnings.push(
+                  `Player ${index} hand content divergence: missing [${missing.join(', ')}], extra [${extra.join(', ')}]`
+                );
               }
             }
           }
@@ -269,18 +303,18 @@ class StateValidator {
       return `// Step ${stepNumber}: State validation passed`;
     }
 
-    let output = [];
-    
+    const output = [];
+
     if (!results.success) {
       output.push(`// Step ${stepNumber}: State validation FAILED`);
-      results.errors.forEach(error => {
+      results.errors.forEach((error) => {
         output.push(`//   ERROR: ${error}`);
       });
     }
 
     if (results.warnings.length > 0) {
       output.push(`// Step ${stepNumber}: State validation warnings`);
-      results.warnings.forEach(warning => {
+      results.warnings.forEach((warning) => {
         output.push(`//   WARNING: ${warning}`);
       });
     }
