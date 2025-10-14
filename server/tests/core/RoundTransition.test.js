@@ -1,7 +1,7 @@
-const GameEngine = require('../../core/engine/GameEngine');
-const { ActionType } = require('../../core/engine/actions');
-const ScoreKeeper = require('../../game_runner/ScoreKeeper');
-const Card = require('../../game_runner/Card');
+const GameEngine = require('../../src/core/engine/GameEngine');
+const { ActionType } = require('../../src/core/engine/actions');
+const ScoreKeeper = require('../../src/shared/ScoreKeeper');
+const Card = require('../../src/core/domain/Card');
 
 describe('Round Transition', () => {
   let engine;

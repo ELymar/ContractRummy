@@ -3,10 +3,18 @@ node_modules
 # Auto-generated logs and tests - don't commit to avoid repo bloat
 server/tests/recorded-games/
 server/tests/generated/
-tests/recorded-games/*.json
+server/recorded-games/
+server/generated/
+server/helpers/
+
+# New structure paths
+tests/recorded-games/
+tests/generated/
+helpers/
 
 # BUT DO commit curated regression tests
 !server/tests/regression/
+!tests/regression/
 
 # Log files
 *.log

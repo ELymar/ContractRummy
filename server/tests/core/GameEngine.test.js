@@ -45,7 +45,7 @@ describe('GameEngine', () => {
   describe('TAKE_FROM_DISCARD Action', () => {
     test('should allow taking from discard pile when available', () => {
       // Add a card to burn pile first
-      const Card = require('../../game_runner/Card');
+      const Card = require('../../src/core/domain/Card');
       const testCard = new Card('Hearts', 'King');
       engine.state.burnPile.addCard(testCard);
       
@@ -63,7 +63,7 @@ describe('GameEngine', () => {
 
     test('should prevent taking from dead burn pile', () => {
       // Add card and make burn pile dead
-      const Card = require('../../game_runner/Card');
+      const Card = require('../../src/core/domain/Card');
       engine.state.burnPile.addCard(new Card('Hearts', 'King'));
       engine.state.burnPile.dead = true;
       
@@ -117,7 +117,7 @@ describe('GameEngine', () => {
       engine.apply({ type: ActionType.DRAW, playerId: 'p2', payload: { nCards: 1 } });
       
       // Set up a hand with valid melds for testing
-      const Card = require('../../game_runner/Card');
+      const Card = require('../../src/core/domain/Card');
       player.hand.cards = [
         new Card('Hearts', 'King'),
         new Card('Spades', 'King'),
@@ -172,8 +172,8 @@ describe('GameEngine', () => {
       
       // Set up player as down with a meld
       player.isDown = true;
-      const Card = require('../../game_runner/Card');
-      const DownPile = require('../../game_runner/DownPile');
+      const Card = require('../../src/core/domain/Card');
+      const DownPile = require('../../src/core/domain/DownPile');
       
       player.hand.cards = [new Card('Hearts', 'Ace')]; // Card to add
       const meld = new DownPile('dupes', 'P2', [

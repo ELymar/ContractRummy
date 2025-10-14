@@ -1,4 +1,4 @@
-const GameLogger = require('../../server/GameLogger');
+const GameLogger = require('../../src/server/GameLogger');
 
 // Fake card objects with toString
 function makeCard(s) {

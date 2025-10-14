@@ -1,4 +1,4 @@
-const GameServer = require('../../server/GameServer');
+const GameServer = require('../../src/server/GameServer');
 const TestBotClient = require('../helpers/TestBotClient');
 
 // Note: This is a harness skeleton. It uses a trivial deck and tiny script to validate the pipeline.

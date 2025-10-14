@@ -1,7 +1,7 @@
-const GameEngine = require('../../core/engine/GameEngine');
-const { ActionType } = require('../../core/engine/actions');
-const { EventType } = require('../../core/engine/events');
-const Card = require('../../game_runner/Card');
+const GameEngine = require('../../src/core/engine/GameEngine');
+const { ActionType } = require('../../src/core/engine/actions');
+const { EventType } = require('../../src/core/engine/events');
+const Card = require('../../src/core/domain/Card');
 
 describe('Deck Reshuffle Event Tests', () => {
   let engine;

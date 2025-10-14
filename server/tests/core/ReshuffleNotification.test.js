@@ -1,4 +1,4 @@
-const TerminalClient = require('../../clients/terminal/TerminalClient');
+const TerminalClient = require('../../src/clients/terminal/TerminalClient');
 
 describe('Reshuffle Notification Tests', () => {
   let client;

@@ -1,8 +1,8 @@
-const TerminalClient = require('../../clients/terminal/TerminalClient');
+const TerminalClient = require('../../src/clients/terminal/TerminalClient');
 
 // Mock dependencies
-jest.mock('../../game_runner/GameIO');
-jest.mock('../../game_runner/SimpleMenu');
+jest.mock('../../src/shared/GameIO');
+jest.mock('../../src/clients/terminal/SimpleMenu');
 
 describe('TerminalClient MELD_LAID Event Display', () => {
   let client;

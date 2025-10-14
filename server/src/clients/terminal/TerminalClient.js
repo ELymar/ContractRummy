@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
-const SimpleMenu = require('../../game_runner/SimpleMenu');
-const GameIO = require('../../game_runner/GameIO');
+const SimpleMenu = require('./SimpleMenu');
+const GameIO = require('../../shared/GameIO');
 const { ActionType } = require('../../core/engine/actions');
 const DisplayUtils = require('../../shared/DisplayUtils');
 

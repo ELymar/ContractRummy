@@ -1,4 +1,4 @@
-const DisplayUtils = require('../../shared/DisplayUtils');
+const DisplayUtils = require('../../src/shared/DisplayUtils');
 
 describe('Meld Display Unit Tests', () => {
   describe('DisplayUtils formatting with game engine view objects', () => {

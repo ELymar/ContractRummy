@@ -1,4 +1,4 @@
-const GameServer = require('../../server/GameServer');
+const GameServer = require('../../src/server/GameServer');
 const TestBotClient = require('../helpers/TestBotClient');
 
 async function startServerOnRandomPort(options = {}) {
