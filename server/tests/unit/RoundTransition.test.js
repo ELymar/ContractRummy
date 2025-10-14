@@ -1,6 +1,7 @@
 const GameEngine = require('../../core/engine/GameEngine');
 const { ActionType } = require('../../core/engine/actions');
 const ScoreKeeper = require('../../game_runner/ScoreKeeper');
+const Card = require('../../game_runner/Card');
 
 describe('Round Transition', () => {
   let engine;
@@ -29,26 +30,26 @@ describe('Round Transition', () => {
     const player2 = engine.state.players[1];
     
     player1.isDown = true;
-    player1.hand.cards = [{ suit: 'Hearts', value: 'Five' }]; // One card to discard
+    player1.hand.cards = [new Card('Hearts', 'Five')]; // One card to discard
     player2.isDown = true;
     player2.hand.cards = [
-      { suit: 'Spades', value: 'Seven' },
-      { suit: 'Hearts', value: 'Seven' },
-      { suit: 'Clubs', value: 'Seven' },
-      { suit: 'Diamonds', value: 'Seven' }
+      new Card('Spades', 'Seven'),
+      new Card('Hearts', 'Seven'),
+      new Card('Clubs', 'Seven'),
+      new Card('Diamonds', 'Seven')
     ];
     
     // Set up the turn to be Player 1's
     engine.state.currentPlayerIndex = 0;
     player1.tookCard = true; // Skip drawing phase
     
-    // Player 1 discards their last card to win
+    // Player 1 discards their last card to win  
+    const cardToDiscard = player1.hand.cards[0];
     const discardEvents = engine.apply({ 
       type: ActionType.DISCARD, 
       playerId: 'p1', 
       payload: { 
-        cardIndex: 0,
-        handOrder: [{ suit: 'Hearts', value: 'Five' }]
+        cardUuid: cardToDiscard.uuid
       } 
     });
     

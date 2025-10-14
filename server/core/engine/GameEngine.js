@@ -265,6 +265,24 @@ class GameEngine {
     return { valid: true, syncedHand };
   }
 
+  // Find card by UUID and return its index in player's hand
+  findCardByUuid(player, cardUuid) {
+    if (!player.hand || !player.hand.cards) {
+      return { error: 'Player has no cards' };
+    }
+
+    if (!cardUuid) {
+      return { error: 'No card UUID provided' };
+    }
+
+    const cardIndex = player.hand.cards.findIndex(card => card.uuid === cardUuid);
+    if (cardIndex === -1) {
+      return { error: 'Player does not own that card' };
+    }
+
+    return { cardIndex, card: player.hand.cards[cardIndex] };
+  }
+
   // Handle round end with scoring and progression
   handleRoundEnd(winnerPlayerId, reason = null) {
     const winner = this.findPlayer(winnerPlayerId);
@@ -476,22 +494,16 @@ class GameEngine {
           return evts;
         }
         
-        const { cardIndex, handOrder } = payload;
+        const { cardUuid } = payload;
         
-        // Synchronize hand order with client if provided
-        if (handOrder) {
-          const syncResult = this.validateAndSyncHand(player, handOrder);
-          if (syncResult.error) {
-            evts.push(this.emit(EventType.ERROR, { message: `Hand sync failed: ${syncResult.error}` }));
-            return evts;
-          }
-        }
-        
-        const validation = this.validatePlayerOwnsCards(player, [cardIndex]);
-        if (validation.error) {
-          evts.push(this.emit(EventType.ERROR, { message: validation.error }));
+        // Find card by UUID
+        const cardLookup = this.findCardByUuid(player, cardUuid);
+        if (cardLookup.error) {
+          evts.push(this.emit(EventType.ERROR, { message: cardLookup.error }));
           return evts;
         }
+        
+        const cardIndex = cardLookup.cardIndex;
         
         const discardedCard = player.hand.cards[cardIndex];
         player.hand.cards.splice(cardIndex, 1);

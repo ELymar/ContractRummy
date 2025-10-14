@@ -13,7 +13,8 @@ describe('GameEngine DISCARD', () => {
     const initialP2Hand = p2.hand.cards.length;
 
     // First turn allows discard without draw
-    const evts = engine.apply({ type: ActionType.DISCARD, playerId: 'p2', payload: { cardIndex: 0 } });
+    const cardToDiscard = p2.hand.cards[0];
+    const evts = engine.apply({ type: ActionType.DISCARD, playerId: 'p2', payload: { cardUuid: cardToDiscard.uuid } });
     expect(evts.some(e => e.type === 'CARD_DISCARDED')).toBe(true);
     expect(engine.state.burnPile.cards.length).toBe(1);
     expect(p2.hand.cards.length).toBe(initialP2Hand - 1);

@@ -79,7 +79,8 @@ describe('GameEngine', () => {
       const player = engine.state.players[1];
       const handSizeBefore = player.hand.cards.length;
       
-      const evts = engine.apply({ type: ActionType.DISCARD, playerId: 'p2', payload: { cardIndex: 0 } });
+      const cardToDiscard = player.hand.cards[0];
+      const evts = engine.apply({ type: ActionType.DISCARD, playerId: 'p2', payload: { cardUuid: cardToDiscard.uuid } });
       expect(evts.some(e => e.type === EventType.CARD_DISCARDED)).toBe(true);
       expect(player.hand.cards.length).toBe(handSizeBefore - 1);
       expect(player.discarded).toBe(true);
@@ -103,7 +104,8 @@ describe('GameEngine', () => {
       // Artificially reduce hand to 1 card for testing
       player.hand.cards = [player.hand.cards[0]];
       
-      const evts = engine.apply({ type: ActionType.DISCARD, playerId: 'p2', payload: { cardIndex: 0 } });
+      const cardToDiscard = player.hand.cards[0];
+      const evts = engine.apply({ type: ActionType.DISCARD, playerId: 'p2', payload: { cardUuid: cardToDiscard.uuid } });
       expect(evts.some(e => e.type === EventType.ROUND_ENDED)).toBe(true);
       expect(player.isOut).toBe(true);
     });
@@ -207,7 +209,9 @@ describe('GameEngine', () => {
   describe('END_TURN Action', () => {
     test('should advance to next player after valid turn', () => {
       engine.apply({ type: ActionType.DRAW, playerId: 'p2', payload: { nCards: 1 } });
-      engine.apply({ type: ActionType.DISCARD, playerId: 'p2', payload: { cardIndex: 0 } });
+      const player = engine.state.players[1];
+      const cardToDiscard = player.hand.cards[0];
+      engine.apply({ type: ActionType.DISCARD, playerId: 'p2', payload: { cardUuid: cardToDiscard.uuid } });
       
       const evts = engine.apply({ type: ActionType.END_TURN, playerId: 'p2' });
       expect(evts.some(e => e.type === EventType.TURN_STARTED)).toBe(true);
@@ -229,7 +233,8 @@ describe('GameEngine', () => {
     test('should reset player state for next turn', () => {
       const player = engine.state.players[1];
       engine.apply({ type: ActionType.DRAW, playerId: 'p2', payload: { nCards: 1 } });
-      engine.apply({ type: ActionType.DISCARD, playerId: 'p2', payload: { cardIndex: 0 } });
+      const cardToDiscard = player.hand.cards[0];
+      engine.apply({ type: ActionType.DISCARD, playerId: 'p2', payload: { cardUuid: cardToDiscard.uuid } });
       engine.apply({ type: ActionType.END_TURN, playerId: 'p2' });
       
       expect(player.tookCard).toBe(false);
