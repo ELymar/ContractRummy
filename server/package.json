@@ -10,8 +10,8 @@
     "play": "node ./main.js",
     "legacy-game": "node ./game_runner/Game.js",
     "legacy-server": "node ./index.js",
-    "ws-server": "node ./server/index-ws.js",
-    "ws-client": "node ./clients/terminal/TerminalClient.js"
+    "ws-server": "node ./src/server/index-ws.js",
+    "ws-client": "node ./src/clients/terminal/TerminalClient.js"
   },
   "author": "",
   "license": "ISC",

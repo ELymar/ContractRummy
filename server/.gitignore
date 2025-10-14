@@ -1,0 +1,10 @@
+node_modules/
+*.log
+.DS_Store
+
+# Recorded game logs - these are generated during testing and shouldn't be committed
+tests/recorded-games/*.json
+src/tests/recorded-games/*.json
+
+# Keep the regression test files but ignore the source recorded games
+!tests/regression/*.json

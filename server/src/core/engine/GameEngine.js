@@ -10,6 +10,17 @@ const ScoreKeeper = require('../../shared/ScoreKeeper');
 const CardScoring = require('../rules/CardScoring');
 const { v4: uuid } = require('uuid');
 
+// Action Handlers
+const JoinHandler = require('./handlers/JoinHandler');
+const ReadyHandler = require('./handlers/ReadyHandler');
+const DrawHandler = require('./handlers/DrawHandler');
+const TakeFromDiscardHandler = require('./handlers/TakeFromDiscardHandler');
+const DiscardHandler = require('./handlers/DiscardHandler');
+const LayDownHandler = require('./handlers/LayDownHandler');
+const AddToMeldHandler = require('./handlers/AddToMeldHandler');
+const EndTurnHandler = require('./handlers/EndTurnHandler');
+const QuitHandler = require('./handlers/QuitHandler');
+
 class GameEngine {
   constructor({ rng = Math.random } = {}) {
     this.rng = rng;
@@ -19,6 +30,19 @@ class GameEngine {
     this.state.started = false;
     this.scoreKeeper = null; // Will be initialized when game starts
     this.pendingStateEvents = []; // Collect events from GameState during action processing
+    
+    // Initialize action handlers
+    this.handlers = new Map([
+      [ActionType.JOIN, new JoinHandler(this)],
+      [ActionType.READY, new ReadyHandler(this)],
+      [ActionType.DRAW, new DrawHandler(this)],
+      [ActionType.TAKE_FROM_DISCARD, new TakeFromDiscardHandler(this)],
+      [ActionType.DISCARD, new DiscardHandler(this)],
+      [ActionType.LAY_DOWN, new LayDownHandler(this)],
+      [ActionType.ADD_TO_MELD, new AddToMeldHandler(this)],
+      [ActionType.END_TURN, new EndTurnHandler(this)],
+      [ActionType.QUIT, new QuitHandler(this)]
+    ]);
     
     // Listen to GameState events and collect them
     this.state.on('deck-reshuffled', (data) => {
@@ -301,448 +325,17 @@ class GameEngine {
 
   apply(command) {
     const { type, playerId, payload = {} } = command;
-    const evts = [];
-
-    switch (type) {
-      case ActionType.JOIN: {
-        const name = payload.name || 'Player';
-        if (!this.state.players.find(p => p.id === playerId)) {
-          this.state.players.push({ 
-            id: playerId, 
-            name, 
-            hand: new Hand(),
-            isDown: false,
-            tookCard: false,
-            discarded: false,
-            isOut: false
-          });
-          evts.push(this.emit(EventType.PLAYER_JOINED, { playerId, name }));
-        }
-        break;
-      }
-
-      case ActionType.READY: {
-        if ((this.state.players?.length ?? 0) >= 2 && !this.state.started) {
-          // Preserve already joined players across initialization
-          const joinedPlayers = this.state.players;
-          this.state.initialize();
-          // Ensure players retain Hand instances and proper state
-          this.state.players = joinedPlayers.map(p => ({ 
-            ...p, 
-            hand: p.hand instanceof Hand ? p.hand : new Hand(),
-            isDown: false,
-            tookCard: false,
-            discarded: false,
-            isOut: false
-          }));
-          // Basic round/dealer/turn bootstrap
-          this.state.currentRound = 1;
-          this.state.dealerIndex = 0;
-          this.state.currentPlayerIndex = (this.state.dealerIndex + 1) % this.state.players.length;
-          this.state.firstTurn = true;
-          // Deal opening hands using RoundDealing
-          try {
-            const deal = RoundDealing.getCardsForRound(this.state.currentRound, this.state.dealerIndex);
-            const p0 = this.state.players[0];
-            const p1 = this.state.players[1];
-            p0.hand.addCards(this.state.drawFromDeck(deal.player1Cards));
-            p1.hand.addCards(this.state.drawFromDeck(deal.player2Cards));
-          } catch (e) {
-            // Fallback: deal 10/11 if module not available
-            const p0 = this.state.players[0];
-            const p1 = this.state.players[1];
-            p0.hand.addCards(this.state.drawFromDeck(10));
-            p1.hand.addCards(this.state.drawFromDeck(11));
-          }
-          this.state.started = true;
-          
-          // Initialize score keeping
-          const playerNames = this.state.players.map(p => p.name);
-          this.scoreKeeper = new ScoreKeeper(playerNames, 7); // 7 rounds in Contract Rummy
-          
-          evts.push(this.emit(EventType.GAME_STARTED, { round: this.state.currentRound }));
-          evts.push(this.emit(EventType.TURN_STARTED, { playerIndex: this.state.currentPlayerIndex }));
-        }
-        break;
-      }
-
-      case ActionType.DRAW: {
-        const turnCheck = this.validateTurn(playerId);
-        if (turnCheck.error) {
-          evts.push(this.emit(EventType.ERROR, { message: turnCheck.error }));
-          return evts;
-        }
-        
-        const player = turnCheck.player;
-        if (player.tookCard) {
-          evts.push(this.emit(EventType.ERROR, { message: 'Already drew a card this turn' }));
-          return evts;
-        }
-        
-        const n = payload.nCards ?? 1;
-        const cards = this.state.drawFromDeck(n);
-        if (!(player.hand instanceof Hand)) player.hand = new Hand();
-        player.hand.addCards(cards);
-        player.tookCard = true;
-        evts.push(this.emit(EventType.CARD_DRAWN, { playerId, n, cardIds: cards.map(c => c.toString?.() ?? String(c)) }));
-        break;
-      }
-
-      case ActionType.TAKE_FROM_DISCARD: {
-        const turnCheck = this.validateTurn(playerId);
-        if (turnCheck.error) {
-          evts.push(this.emit(EventType.ERROR, { message: turnCheck.error }));
-          return evts;
-        }
-        
-        const player = turnCheck.player;
-        if (player.tookCard) {
-          evts.push(this.emit(EventType.ERROR, { message: 'Already drew a card this turn' }));
-          return evts;
-        }
-
-        // Check if burn pile has cards and is not dead
-        if (this.state.burnPile.cards.length === 0) {
-          evts.push(this.emit(EventType.ERROR, { message: 'Burn pile is empty' }));
-          return evts;
-        }
-
-        if (this.state.burnPile.dead) {
-          evts.push(this.emit(EventType.ERROR, { message: 'Cannot take from discard pile - it is dead' }));
-          return evts;
-        }
-
-        // Take the top card from burn pile
-        const takenCard = this.state.burnPile.takeCard(); // This also sets burn pile to dead
-        if (!(player.hand instanceof Hand)) player.hand = new Hand();
-        player.hand.addCard(takenCard);
-        player.tookCard = true;
-        
-        evts.push(this.emit(EventType.CARD_DRAWN, { 
-          playerId, 
-          n: 1, 
-          cardIds: [takenCard.toString?.() ?? String(takenCard)],
-          source: 'discard'
-        }));
-        break;
-      }
-
-      case ActionType.DISCARD: {
-        const turnCheck = this.validateTurn(playerId);
-        if (turnCheck.error) {
-          evts.push(this.emit(EventType.ERROR, { message: turnCheck.error }));
-          return evts;
-        }
-        
-        const player = turnCheck.player;
-        // On the very first turn of the round, the non-dealer (who has one extra card)
-        // may discard without drawing. After first turn, a draw is required first.
-        if (!player.tookCard && !this.state.firstTurn) {
-          evts.push(this.emit(EventType.ERROR, { message: 'Must draw a card before discarding' }));
-          return evts;
-        }
-        
-        const { cardUuid } = payload;
-        
-        // Find card by UUID
-        const cardLookup = this.findCardByUuid(player, cardUuid);
-        if (cardLookup.error) {
-          evts.push(this.emit(EventType.ERROR, { message: cardLookup.error }));
-          return evts;
-        }
-        
-        const cardIndex = cardLookup.cardIndex;
-        
-        const discardedCard = player.hand.cards[cardIndex];
-        player.hand.cards.splice(cardIndex, 1);
-        this.state.burnPile.addCard(discardedCard);
-        player.discarded = true;
-        
-        // Check for win condition
-        if (player.hand.cards.length === 0) {
-          player.isOut = true;
-          evts.push(...this.handleRoundEnd(playerId));
-        }
-        
-        evts.push(this.emit(EventType.CARD_DISCARDED, { 
-          playerId, 
-          cardId: discardedCard.toString?.() ?? String(discardedCard),
-          remainingCards: player.hand.cards.length
-        }));
-
-        // Validate game state consistency after card movement (development only)
-        // Skip validation if the discard triggered a round end, as the state will be inconsistent
-        // until the next round starts
-        const triggeredRoundEnd = evts.some(e => e.type === 'ROUND_ENDED');
-        if (process.env.NODE_ENV !== 'test' && !triggeredRoundEnd) {
-          const stateCheck = this.validateGameStateConsistency();
-          if (stateCheck.error) {
-            console.error('Game state inconsistency after discard:', stateCheck.error);
-          }
-        }
-        break;
-      }
-
-      case ActionType.LAY_DOWN: {
-        const turnCheck = this.validateTurn(playerId);
-        if (turnCheck.error) {
-          evts.push(this.emit(EventType.ERROR, { message: turnCheck.error }));
-          return evts;
-        }
-        
-        const player = turnCheck.player;
-        if (player.isDown) {
-          evts.push(this.emit(EventType.ERROR, { message: 'Already down this round' }));
-          return evts;
-        }
-        
-        if (!player.tookCard) {
-          evts.push(this.emit(EventType.ERROR, { message: 'Must draw a card before laying down' }));
-          return evts;
-        }
-        
-        const { melds } = payload;
-        if (!melds || !Array.isArray(melds) || melds.length === 0) {
-          evts.push(this.emit(EventType.ERROR, { message: 'Must provide melds to lay down' }));
-          return evts;
-        }
-        
-        // Validate melds and check contract
-        try {
-          const contract = getContractForRound(this.state.currentRound);
-          if (melds.length !== contract.requirements.length) {
-            evts.push(this.emit(EventType.ERROR, { 
-              message: `Contract requires ${contract.requirements.length} melds, got ${melds.length}` 
-            }));
-            return evts;
-          }
-          
-          const usedCardUuids = new Set();
-          const validatedMelds = [];
-          
-          for (let i = 0; i < melds.length; i++) {
-            const meld = melds[i];
-            const { cardUuids, type } = meld;
-            
-            if (!cardUuids || !Array.isArray(cardUuids)) {
-              evts.push(this.emit(EventType.ERROR, { message: 'Invalid meld cardUuids data' }));
-              return evts;
-            }
-            
-            // Convert UUIDs to cards and validate ownership
-            const cards = [];
-            const cardIndices = [];
-            
-            for (const uuid of cardUuids) {
-              const cardLookup = this.findCardByUuid(player, uuid);
-              if (cardLookup.error) {
-                evts.push(this.emit(EventType.ERROR, { message: `Meld ${i + 1}: ${cardLookup.error}` }));
-                return evts;
-              }
-              
-              // Check for overlapping UUIDs with previous melds
-              if (usedCardUuids.has(uuid)) {
-                evts.push(this.emit(EventType.ERROR, { message: 'Cannot use the same card in multiple melds' }));
-                return evts;
-              }
-              
-              usedCardUuids.add(uuid);
-              cards.push(player.hand.cards[cardLookup.cardIndex]);
-              cardIndices.push(cardLookup.cardIndex);
-            }
-            
-            // Validate meld type
-            if (type === 'set' && !isValidDupes(cards)) {
-              evts.push(this.emit(EventType.ERROR, { message: `Invalid set at meld ${i + 1}` }));
-              return evts;
-            } else if (type === 'sequence' && !isValidSequence(cards)) {
-              evts.push(this.emit(EventType.ERROR, { message: `Invalid sequence at meld ${i + 1}` }));
-              return evts;
-            }
-            
-            validatedMelds.push({ cards, cardIndices, type: type === 'set' ? 'dupes' : 'sequence' });
-          }
-          
-          // Check contract satisfaction
-          if (!contract.isContractSatisfied(validatedMelds.map(m => ({ 
-            type: m.type === 'dupes' ? 'set' : 'sequence', 
-            cards: m.cards 
-          })))) {
-            evts.push(this.emit(EventType.ERROR, { message: 'Melds do not satisfy contract requirements' }));
-            return evts;
-          }
-          
-          // All validation passed - execute the lay down
-          // Collect all card indices and sort in descending order to avoid index shifting during removal
-          const allCardIndices = [];
-          validatedMelds.forEach(meld => allCardIndices.push(...meld.cardIndices));
-          const sortedIndices = allCardIndices.sort((a, b) => b - a);
-          
-          // Create down piles
-          for (const meld of validatedMelds) {
-            const downPile = new DownPile(meld.type, player.name, meld.cards);
-            this.state.downPiles.push(downPile);
-          }
-          
-          // Remove cards from hand (in descending order to avoid index shifting)
-          for (const idx of sortedIndices) {
-            player.hand.cards.splice(idx, 1);
-          }
-          
-          player.isDown = true;
-          evts.push(this.emit(EventType.MELD_LAID, { 
-            playerId, 
-            melds: validatedMelds.map(m => ({
-              type: m.type === 'dupes' ? 'set' : 'sequence',
-              cards: m.cards.map(c => c.toString?.() ?? String(c))
-            }))
-          }));
-
-          // Validate game state consistency after laying down (development only)
-          if (process.env.NODE_ENV !== 'test') {
-            const stateCheck = this.validateGameStateConsistency();
-            if (stateCheck.error) {
-              console.error('Game state inconsistency after lay down:', stateCheck.error);
-            }
-          }
-          
-        } catch (error) {
-          evts.push(this.emit(EventType.ERROR, { message: `Contract error: ${error.message}` }));
-          return evts;
-        }
-        break;
-      }
-
-      case ActionType.END_TURN: {
-        const turnCheck = this.validateTurn(playerId);
-        if (turnCheck.error) {
-          evts.push(this.emit(EventType.ERROR, { message: turnCheck.error }));
-          return evts;
-        }
-        
-        const player = turnCheck.player;
-        if (!player.discarded) {
-          evts.push(this.emit(EventType.ERROR, { message: 'Must discard a card before ending turn' }));
-          return evts;
-        }
-        
-        // Reset player state for next turn
-        player.tookCard = false;
-        player.discarded = false;
-        this.state.firstTurn = false;
-        
-        const nPlayers = this.state.players.length;
-        if (nPlayers > 0) {
-          this.state.currentPlayerIndex = (this.state.currentPlayerIndex + 1) % nPlayers;
-          evts.push(this.emit(EventType.TURN_STARTED, { playerIndex: this.state.currentPlayerIndex }));
-        }
-        break;
-      }
-
-      case ActionType.QUIT: {
-        const turnCheck = this.validateTurn(playerId);
-        if (turnCheck.error) {
-          evts.push(this.emit(EventType.ERROR, { message: turnCheck.error }));
-          return evts;
-        }
-        
-        const player = turnCheck.player;
-        player.isOut = true;
-        player.quit = true;
-        
-        evts.push(this.emit(EventType.PLAYER_QUIT, { 
-          playerId, 
-          playerName: player.name 
-        }));
-        
-        // Check if only one player remains
-        const activePlayers = this.state.players.filter(p => !p.isOut);
-        if (activePlayers.length <= 1) {
-          const winner = activePlayers[0];
-          evts.push(...this.handleRoundEnd(winner?.id, 'opponent_quit'));
-        } else {
-          // Continue to next player
-          const nPlayers = this.state.players.length;
-          if (nPlayers > 0) {
-            this.state.currentPlayerIndex = (this.state.currentPlayerIndex + 1) % nPlayers;
-            // Skip players who are out
-            while (this.state.players[this.state.currentPlayerIndex].isOut && activePlayers.length > 1) {
-              this.state.currentPlayerIndex = (this.state.currentPlayerIndex + 1) % nPlayers;
-            }
-            evts.push(this.emit(EventType.TURN_STARTED, { playerIndex: this.state.currentPlayerIndex }));
-          }
-        }
-        break;
-      }
-
-
-      case ActionType.ADD_TO_MELD: {
-        const turnCheck = this.validateTurn(playerId);
-        if (turnCheck.error) {
-          evts.push(this.emit(EventType.ERROR, { message: turnCheck.error }));
-          return evts;
-        }
-        
-        const player = turnCheck.player;
-        if (!player.isDown) {
-          evts.push(this.emit(EventType.ERROR, { message: 'Must be down before adding to melds' }));
-          return evts;
-        }
-        
-        const { cardUuid, meldIndex, position } = payload;
-        
-        // Find card by UUID
-        const cardLookup = this.findCardByUuid(player, cardUuid);
-        if (cardLookup.error) {
-          evts.push(this.emit(EventType.ERROR, { message: cardLookup.error }));
-          return evts;
-        }
-        
-        if (meldIndex < 0 || meldIndex >= this.state.downPiles.length) {
-          evts.push(this.emit(EventType.ERROR, { message: 'Invalid meld index' }));
-          return evts;
-        }
-        
-        const cardIndex = cardLookup.cardIndex;
-        const card = player.hand.cards[cardIndex];
-        const meld = this.state.downPiles[meldIndex];
-        
-        // Try to add the card to the meld
-        let success = false;
-        if (position !== undefined && position !== null) {
-          // Add at specific position
-          success = meld.addCard(card, position);
-        } else {
-          // Try adding at end first, then beginning
-          success = meld.addCard(card) || meld.addCard(card, 0);
-        }
-        
-        if (success) {
-          player.hand.cards.splice(cardIndex, 1);
-          evts.push(this.emit(EventType.MELD_EXTENDED, { 
-            playerId, 
-            meldIndex,
-            cardId: card.toString?.() ?? String(card),
-            remainingCards: player.hand.cards.length
-          }));
-          
-          // Check for win condition
-          if (player.hand.cards.length === 0) {
-            player.isOut = true;
-            evts.push(...this.handleRoundEnd(playerId));
-          }
-        } else {
-          evts.push(this.emit(EventType.ERROR, { 
-            message: 'Cannot add that card to the selected meld' 
-          }));
-        }
-        break;
-      }
-
-      default:
-        evts.push(this.emit(EventType.ERROR, { message: `Unsupported action: ${type}` }));
+    
+    // Get handler for action type
+    const handler = this.handlers.get(type);
+    if (!handler) {
+      return this.collectEvents([
+        this.emit(EventType.ERROR, { message: `Unknown action type: ${type}` })
+      ]);
     }
 
+    // Execute handler
+    const evts = handler.handle(playerId, payload);
     return this.collectEvents(evts);
   }
 }
