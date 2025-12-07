@@ -639,3 +639,46 @@ PostgreSQL (Persistent Data - Future)
 6. **Round End Modal** → scores after each round
 7. **Game End Screen** → final scores and winner
 8. **Back to Title** → play again loop
+
+---
+
+## Asset Requirements
+
+### Cards ✅ COMPLETE
+- [x] 52 card faces (A-K for each suit) - 150x210px
+- [x] Joker card - 150x210px
+- [x] Card back - 150x210px
+
+### Backgrounds & UI (To Be Created)
+- [ ] Felt table background - 1920x1080px (or solid color #225533)
+- [ ] UI panel background - 400x400px (9-patch/sliced)
+- [ ] Button backgrounds (normal, pressed, disabled) - 300x80px
+- [ ] Modal overlay background - 800x600px (semi-transparent)
+
+### Icons (To Be Created)
+- [ ] Menu/hamburger icon - 64x64px
+- [ ] Close/X icon - 64x64px
+- [ ] Settings/gear icon - 64x64px
+- [ ] Sound on/off icons - 64x64px each
+- [ ] Music on/off icons - 64x64px each
+- [ ] Copy/share icon - 64x64px
+- [ ] Checkmark icon - 64x64px
+- [ ] Back arrow icon - 64x64px
+- [ ] Plus icon - 64x64px
+- [ ] Refresh icon - 64x64px
+
+### App Branding (To Be Created)
+- [ ] App icon/logo - 1024x1024px master (iOS needs various sizes)
+- [ ] Splash screen - 1920x1080px
+- [ ] Launch screen (iOS) - 1920x1080px
+
+### Fonts (To Be Selected)
+- [ ] Primary UI font (bold sans-serif)
+- [ ] Numbers/scores font (monospace/tabular)
+- [ ] Optional: Display font for titles
+
+### Audio (Future)
+- [ ] Sound effects (card flip, place, button click, etc.)
+- [ ] Background music (optional)
+
+**Note:** Start with placeholder assets where needed. Visual polish can be added incrementally.
