@@ -11,12 +11,13 @@ config_version=5
 [application]
 
 config/name="Contract Rummy"
-run/main_scene="res://scenes/main/Main.tscn"
+run/main_scene="res://scenes/splash/Splash.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
 config/icon="res://icon.svg"
 
 [autoload]
 
+SceneManager="*res://scripts/core/SceneManager.gd"
 GameState="*res://scripts/game/GameState.gd"
 GameConnection="*res://scripts/network/GameConnection.gd"
 

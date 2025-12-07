@@ -17,9 +17,9 @@ All planned refactorings have been completed:
 
 ---
 
-## Phase 2: UI Development (Current Priority)
+## Phase 2: UI Development (Current Priority) 🔄 IN PROGRESS
 
-### Technology Decision: **Godot Engine** ⭐
+### Technology Decision: **Godot Engine 4.3** ⭐
 
 **Rationale:**
 - Already familiar with Godot (fastest development)
@@ -29,6 +29,33 @@ All planned refactorings have been completed:
 - Works perfectly with existing Node.js backend
 
 **Alternative Considered:** React Native, SwiftUI (documented for reference)
+
+### Current Implementation Status (as of 2025-12-07)
+
+**✅ Completed:**
+- Godot 4.3 project configured (landscape, mobile renderer)
+- SceneManager singleton for navigation
+- All 52 card assets + joker + card back imported
+- Card scene with selection, face up/down, drag support
+- Hand scene with slot-based drag-and-drop and real-time preview
+- Splash screen (auto-advances after 2s)
+- Title screen with full menu navigation
+- Placeholder screens: Rules, Options, About, GameSetup, JoinGame, GameScreen
+
+**🔄 In Progress / Next Steps:**
+- Implement GameSetup screen (display game code, player list, jokers config)
+- Implement JoinGame screen (code input, player name)
+- Complete WebSocket client implementation
+- Build Table scene (deck, discard pile, meld areas)
+- Build Opponent Area component
+- Build full Game Screen with all components integrated
+
+**📦 Assets Status:**
+- ✅ Cards: Complete (52 cards + joker + back)
+- ⏳ Backgrounds: Need felt table texture/color
+- ⏳ Icons: Need menu, settings, and action icons
+- ⏳ Fonts: Using default (need to select custom fonts)
+- ⏳ Audio: Not started (future)
 
 ### Game Flow & Screen Architecture
 
@@ -241,49 +268,53 @@ Game End Screen
 - [x] Create placeholder autoload singletons
 - [x] Set up basic test scene
 
-#### Milestone 1: Core Screens & Navigation (Week 1)
-- [ ] Create screen manager / scene switcher
-- [ ] Build Splash Screen (`Splash.tscn`)
-  - App logo/branding
-  - Auto-advance to Title after load
-- [ ] Build Title Screen (`TitleScreen.tscn`)
-  - Main menu buttons (New Game, Join, Rules, Options, About)
-  - Background styling (felt table theme)
-- [ ] Build Rules Screen (`RulesScreen.tscn`)
-  - Contract requirements display
-  - Scrollable content
-- [ ] Build Options Screen (`OptionsScreen.tscn`)
-  - Sound/music toggles and sliders
-  - Animation speed selector
-  - Save/load settings to file
-- [ ] Build About Screen (`AboutScreen.tscn`)
-  - Version info, credits, links
+#### Milestone 1: Core Screens & Navigation (Week 1) ✅
+- [x] Create screen manager / scene switcher (`SceneManager.gd`) ✅
+- [x] Build Splash Screen (`Splash.tscn`) ✅
+  - [x] App logo/branding
+  - [x] Auto-advance to Title after 2 seconds
+- [x] Build Title Screen (`TitleScreen.tscn`) ✅
+  - [x] Main menu buttons (New Game, Join, Rules, Options, About)
+  - [x] Background styling (felt table theme)
+  - [x] Dev button to access Card Test scene
+- [x] Build Rules Screen (`RulesScreen.tscn`) ✅ (Placeholder - TODO content)
+  - [ ] Contract requirements display
+  - [ ] Scrollable content
+- [x] Build Options Screen (`OptionsScreen.tscn`) ✅ (Placeholder - TODO content)
+  - [ ] Sound/music toggles and sliders
+  - [ ] Animation speed selector
+  - [ ] Save/load settings to file
+- [x] Build About Screen (`AboutScreen.tscn`) ✅ (Placeholder - TODO content)
+  - [ ] Version info, credits, links
 
 #### Milestone 2: Lobby & Game Setup (Week 2)
-- [ ] Build Game Setup Screen (`GameSetup.tscn`)
-  - Display game code (large, copyable)
-  - Player list component
-  - Jokers configuration dropdown
-  - Start game button (host only)
-- [ ] Build Join Game Screen (`JoinGame.tscn`)
-  - Game code input (6-char, auto-uppercase)
-  - Player name input
-  - Join button with validation
-- [ ] Implement basic WebSocket client (`GameConnection.gd`)
-  - Connect to existing `GameServer.js`
-  - Handle welcome, join, and lobby messages
-  - Basic error handling
+- [x] Build Game Setup Screen (`GameSetup.tscn`) ✅ (Placeholder - TODO implementation)
+  - [ ] Display game code (large, copyable)
+  - [ ] Player list component
+  - [ ] Jokers configuration dropdown
+  - [ ] Start game button (host only)
+- [x] Build Join Game Screen (`JoinGame.tscn`) ✅ (Placeholder - TODO implementation)
+  - [ ] Game code input (6-char, auto-uppercase)
+  - [ ] Player name input
+  - [ ] Join button with validation
+- [ ] Implement WebSocket client (`GameConnection.gd`)
+  - [ ] Connect to existing `GameServer.js`
+  - [ ] Handle welcome, join, and lobby messages
+  - [ ] Basic error handling
 
 #### Milestone 3: Core Game UI (Weeks 3-4)
-- [ ] Build Card scene (`Card.tscn`)
-  - Card rendering (suit, value, visual styling)
-  - Touch/click handling
-  - Selection animations (scale, position offset)
-- [ ] Build Hand scene (`Hand.tscn`)
-  - Horizontal scrolling card container
-  - Card overlap layout (fan effect)
-  - Drag-and-drop to reorder cards
-  - Multi-select support
+- [x] Build Card scene (`Card.tscn`) ✅
+  - [x] Card rendering (suit, value, visual styling)
+  - [x] Touch/click handling
+  - [x] Selection system (yellow highlight)
+  - [x] Face up/down support
+  - [x] Drag-and-drop support
+- [x] Build Hand scene (`Hand.tscn`) ✅
+  - [x] Slot-based card positioning
+  - [x] Real-time drag preview (cards shift while dragging)
+  - [x] Smooth animations (tweens)
+  - [x] Multi-select support
+  - [x] Card reordering with snap-to-slot
 - [ ] Build Table scene (`Table.tscn`)
   - Deck display (left) with card count
   - Discard pile (center-left) showing top card
@@ -328,7 +359,7 @@ Game End Screen
 #### Milestone 5: Polish & Testing (Week 6)
 - [ ] Add animations
   - Card dealing
-  - Card movement (tweens)
+  - [x] Card movement (tweens) ✅
   - Meld laying
   - Particle effects for winning
 - [ ] Add sound effects
@@ -614,31 +645,70 @@ PostgreSQL (Persistent Data - Future)
 **Total:** ~$80-120/month + $99/year for App Store
 
 ### Development Timeline Estimate
-- UI Development: 6-8 weeks
+- UI Development: 6-8 weeks (🔄 Week 1 in progress)
 - Production Deployment: 2-3 weeks
 - Beta Testing: 1-2 weeks
 - App Store Review: 1-2 weeks
 
 **Total:** ~10-15 weeks to production iOS app
 
+### Progress Summary
+
+**Week 1 Progress (2025-12-07):**
+- ✅ Project setup complete
+- ✅ Card system with drag-and-drop complete
+- ✅ Navigation scaffolding complete
+- 🔄 Ready for lobby implementation
+
+**Estimated Completion:**
+- Milestone 1 (Navigation): ✅ 100%
+- Milestone 2 (Lobby): ⏳ 20% (scaffolding done, needs implementation)
+- Milestone 3 (Game UI): ⏳ 35% (Card/Hand done, need Table/Opponent/GameScreen)
+- Milestone 4 (Modals): ⏳ 0%
+- Milestone 5 (Polish): ⏳ 10% (card animations done)
+- Milestone 6 (iOS): ⏳ 0%
+
+**Overall UI Development:** ~25% complete
+
 ---
 
 *Last updated: 2025-12-07*
 *Current Phase: Phase 2 - UI Development (Godot)*
-*Next Milestone: Core Screens & Navigation*
+*Current Progress:*
+- ✅ Milestone 0: Project Setup Complete
+- ✅ Milestone 1: Navigation Scaffolding Complete
+- ✅ Card & Hand scenes complete with slot-based drag-and-drop
+- 🔄 Currently: Milestone 2 & 3 - Implement game screens
+
+*Completed Today:*
+- SceneManager for navigation
+- Splash Screen (auto-advances after 2s)
+- Title Screen with full menu
+- Placeholder screens (Rules, Options, About, GameSetup, JoinGame)
+- Card & Hand scenes with drag-and-drop
+
+*Next Steps:*
+1. Implement lobby screens (GameSetup, JoinGame) with WebSocket
+2. Build Table scene (deck, discard, melds)
+3. Build Opponent Area and full Game Screen
 
 ---
 
 ## Quick Reference: Screen Flow Summary
 
-1. **Splash** → auto-advances
-2. **Title** → New Game / Join Game / Rules / Options / About
-3. **Game Setup** (host) OR **Join Game** (guest) → waiting room
-4. **Game Screen** → main gameplay
-5. **Notice Modal** → in-game notifications (overlays Game Screen)
-6. **Round End Modal** → scores after each round
-7. **Game End Screen** → final scores and winner
-8. **Back to Title** → play again loop
+**✅ Implemented:**
+1. **Splash** → auto-advances after 2s ✅
+2. **Title** → New Game / Join Game / Rules / Options / About ✅
+3. **Rules/Options/About** → placeholder screens with back button ✅
+4. **[Dev] Card Test** → drag-and-drop test scene ✅
+
+**⏳ To Implement:**
+5. **Game Setup** (host) OR **Join Game** (guest) → waiting room
+6. **Game Screen** → main gameplay
+7. **Notice Modal** → in-game notifications (overlays Game Screen)
+8. **Round End Modal** → scores after each round
+9. **Game End Screen** → final scores and winner
+10. **Back to Title** → play again loop
 
 ---
 
