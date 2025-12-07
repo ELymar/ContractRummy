@@ -36,17 +36,17 @@ grow_vertical = 2
 
 [node name="TitleLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
-text = "Contract Rummy - Card Test"
+theme_override_font_sizes/font_size = 36
+text = "Contract Rummy - Drag & Drop Test"
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
-[node name="CardContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="HandContainer" type="Control" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 210)
 layout_mode = 2
-alignment = 1
 
 [node name="Spacer2" type="Control" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 20)
@@ -55,7 +55,7 @@ layout_mode = 2
 [node name="InfoLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Click cards to select them"
+text = "Drag cards to reorder • Click to select"
 horizontal_alignment = 1
 
 [node name="ButtonContainer" type="HBoxContainer" parent="VBoxContainer"]

@@ -11,6 +11,9 @@ var card_uuid: String = ""  # UUID from server
 # Visual state
 var is_selected: bool = false
 var is_dragging: bool = false
+var drag_offset: Vector2 = Vector2.ZERO
+var original_position: Vector2 = Vector2.ZERO
+var original_z_index: int = 0
 
 # Card dimensions (matches your assets)
 const CARD_WIDTH = 150
@@ -22,6 +25,8 @@ const CARD_HEIGHT = 210
 signal card_clicked(card: Card)
 signal card_selected(card: Card)
 signal card_deselected(card: Card)
+signal drag_started(card: Card)
+signal drag_ended(card: Card)
 
 func _ready():
 	custom_minimum_size = Vector2(CARD_WIDTH, CARD_HEIGHT)
@@ -88,9 +93,34 @@ func toggle_selection():
 func _gui_input(event):
 	"""Handle input events on the card"""
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			card_clicked.emit(self)
-			toggle_selection()
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				# Start potential drag
+				is_dragging = true
+				drag_offset = event.position
+				original_position = global_position
+				original_z_index = z_index
+				z_index = 100  # Bring to front while dragging
+				drag_started.emit(self)
+				accept_event()
+			else:
+				# End drag
+				if is_dragging:
+					is_dragging = false
+					z_index = original_z_index
+					drag_ended.emit(self)
+
+					# If we didn't move much, treat as a click
+					if global_position.distance_to(original_position) < 5:
+						card_clicked.emit(self)
+						toggle_selection()
+
+					accept_event()
+
+	elif event is InputEventMouseMotion:
+		if is_dragging:
+			# Move card with mouse
+			global_position = get_global_mouse_position() - drag_offset
 			accept_event()
 
 func get_card_name() -> String:
