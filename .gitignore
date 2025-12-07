@@ -19,3 +19,19 @@ helpers/
 # Log files
 *.log
 .vscode
+
+# Godot 4+ specific ignores
+ui/.godot/
+ui/*.import
+ui/*.translation
+ui/.DS_Store
+ui/export/
+ui/export_presets.cfg
+
+# Godot build artifacts
+*.import
+*.md5
+*.stex
+*.etc2
+*.ctex
+*.fontdata
