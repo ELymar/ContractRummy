@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://g6c3pr8vqp4ef"]
+[gd_scene load_steps=3 format=3 uid="uid://dbw74qcm6i8mn"]
 
 [ext_resource type="Script" path="res://scenes/game/GameScreen.gd" id="1_game"]
+[ext_resource type="PackedScene" uid="uid://bq2xvw8fmno5p" path="res://scenes/game/Hand.tscn" id="2_hand"]
 
 [node name="GameScreen" type="Control"]
 layout_mode = 3
@@ -20,21 +21,121 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.133333, 0.4, 0.2, 1)
 
-[node name="Label" type="Label" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -50.0
-offset_right = 200.0
-offset_bottom = 50.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 48
-text = "Game Screen
-TODO"
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="MainLayout" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="OpponentArea" type="VBoxContainer" parent="MarginContainer/MainLayout"]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="OpponentHand" type="HBoxContainer" parent="MarginContainer/MainLayout/OpponentArea"]
+layout_mode = 2
+alignment = 1
+
+[node name="OpponentMelds" type="VBoxContainer" parent="MarginContainer/MainLayout/OpponentArea"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="MeldRow1" type="HBoxContainer" parent="MarginContainer/MainLayout/OpponentArea/OpponentMelds"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="MeldRow2" type="HBoxContainer" parent="MarginContainer/MainLayout/OpponentArea/OpponentMelds"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="MeldRow3" type="HBoxContainer" parent="MarginContainer/MainLayout/OpponentArea/OpponentMelds"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="TableArea" type="HBoxContainer" parent="MarginContainer/MainLayout"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 15
+
+[node name="LeftSide" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 15
+
+[node name="DeckArea" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/LeftSide"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="DeckLabel" type="Label" parent="MarginContainer/MainLayout/TableArea/LeftSide/DeckArea"]
+layout_mode = 2
+text = "Deck"
 horizontal_alignment = 1
-vertical_alignment = 1
+
+[node name="DeckContainer" type="Control" parent="MarginContainer/MainLayout/TableArea/LeftSide/DeckArea"]
+custom_minimum_size = Vector2(60, 84)
+layout_mode = 2
+
+[node name="DiscardArea" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/LeftSide"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="DiscardLabel" type="Label" parent="MarginContainer/MainLayout/TableArea/LeftSide/DiscardArea"]
+layout_mode = 2
+text = "Discard"
+horizontal_alignment = 1
+
+[node name="DiscardContainer" type="Control" parent="MarginContainer/MainLayout/TableArea/LeftSide/DiscardArea"]
+custom_minimum_size = Vector2(60, 84)
+layout_mode = 2
+
+[node name="RightSide" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="PlayerMeldsLabel" type="Label" parent="MarginContainer/MainLayout/TableArea/RightSide"]
+layout_mode = 2
+text = "Your Melds"
+horizontal_alignment = 1
+
+[node name="PlayerMelds" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 3
+
+[node name="MeldRow1" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="MeldRow2" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="MeldRow3" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="PlayerHandArea" type="VBoxContainer" parent="MarginContainer/MainLayout"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="PlayerHandLabel" type="Label" parent="MarginContainer/MainLayout/PlayerHandArea"]
+layout_mode = 2
+text = "Your Hand"
+horizontal_alignment = 1
+
+[node name="PlayerHand" parent="MarginContainer/MainLayout/PlayerHandArea" instance=ExtResource("2_hand")]
+custom_minimum_size = Vector2(0, 210)
+layout_mode = 2

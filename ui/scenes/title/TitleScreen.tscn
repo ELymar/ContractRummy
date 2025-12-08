@@ -85,3 +85,9 @@ custom_minimum_size = Vector2(400, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "[Dev] Card Test"
+
+[node name="GameScreenButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(400, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "[Dev] Game Screen"

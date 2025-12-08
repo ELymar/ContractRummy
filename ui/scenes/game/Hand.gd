@@ -2,9 +2,9 @@ extends Control
 class_name Hand
 
 # Hand configuration
-const CARD_WIDTH = 150
-const CARD_HEIGHT = 210
-const CARD_SPACING = 20  # Spacing between cards
+const CARD_WIDTH = 60  # Smaller cards to fit layout
+const CARD_HEIGHT = 84
+const CARD_SPACING = 3  # Reduced spacing between cards
 
 var cards: Array[Card] = []
 var dragging_card: Card = null
