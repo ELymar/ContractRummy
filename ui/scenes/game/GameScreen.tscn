@@ -35,47 +35,64 @@ theme_override_constants/margin_bottom = 10
 
 [node name="MainLayout" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
+theme_override_constants/separation = 5
+alignment = 1
 
 [node name="OpponentArea" type="VBoxContainer" parent="MarginContainer/MainLayout"]
-custom_minimum_size = Vector2(0, 170)
 layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 2.0
 theme_override_constants/separation = 3
+alignment = 1
 
 [node name="OpponentHand" type="HBoxContainer" parent="MarginContainer/MainLayout/OpponentArea"]
 layout_mode = 2
+size_flags_vertical = 0
 alignment = 1
 
 [node name="OpponentMelds" type="VBoxContainer" parent="MarginContainer/MainLayout/OpponentArea"]
 layout_mode = 2
-theme_override_constants/separation = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 2
+alignment = 1
 
 [node name="MeldRow1" type="HBoxContainer" parent="MarginContainer/MainLayout/OpponentArea/OpponentMelds"]
 layout_mode = 2
-theme_override_constants/separation = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 2
+alignment = 1
 
 [node name="MeldRow2" type="HBoxContainer" parent="MarginContainer/MainLayout/OpponentArea/OpponentMelds"]
 layout_mode = 2
-theme_override_constants/separation = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 2
+alignment = 1
 
 [node name="MeldRow3" type="HBoxContainer" parent="MarginContainer/MainLayout/OpponentArea/OpponentMelds"]
 layout_mode = 2
-theme_override_constants/separation = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 2
+alignment = 1
 
 [node name="TableArea" type="HBoxContainer" parent="MarginContainer/MainLayout"]
-custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 15
+size_flags_stretch_ratio = 2.5
+theme_override_constants/separation = 10
+alignment = 1
 
 [node name="LeftSide" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea"]
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 15
+size_flags_horizontal = 0
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+alignment = 1
 
 [node name="DeckArea" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/LeftSide"]
-custom_minimum_size = Vector2(60, 0)
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_constants/separation = 3
+alignment = 1
 
 [node name="DeckLabel" type="Label" parent="MarginContainer/MainLayout/TableArea/LeftSide/DeckArea"]
 layout_mode = 2
@@ -83,13 +100,14 @@ text = "Deck"
 horizontal_alignment = 1
 
 [node name="DeckContainer" type="Control" parent="MarginContainer/MainLayout/TableArea/LeftSide/DeckArea"]
-custom_minimum_size = Vector2(60, 84)
+custom_minimum_size = Vector2(50, 70)
 layout_mode = 2
 
 [node name="DiscardArea" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/LeftSide"]
-custom_minimum_size = Vector2(60, 0)
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_constants/separation = 3
+alignment = 1
 
 [node name="DiscardLabel" type="Label" parent="MarginContainer/MainLayout/TableArea/LeftSide/DiscardArea"]
 layout_mode = 2
@@ -97,13 +115,15 @@ text = "Discard"
 horizontal_alignment = 1
 
 [node name="DiscardContainer" type="Control" parent="MarginContainer/MainLayout/TableArea/LeftSide/DiscardArea"]
-custom_minimum_size = Vector2(60, 84)
+custom_minimum_size = Vector2(50, 70)
 layout_mode = 2
 
 [node name="RightSide" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea"]
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 5
+size_flags_horizontal = 0
+size_flags_vertical = 3
+theme_override_constants/separation = 3
+alignment = 1
 
 [node name="PlayerMeldsLabel" type="Label" parent="MarginContainer/MainLayout/TableArea/RightSide"]
 layout_mode = 2
@@ -112,24 +132,34 @@ horizontal_alignment = 1
 
 [node name="PlayerMelds" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide"]
 layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 2
+alignment = 1
 
 [node name="MeldRow1" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds"]
 layout_mode = 2
-theme_override_constants/separation = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 2
+alignment = 1
 
 [node name="MeldRow2" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds"]
 layout_mode = 2
-theme_override_constants/separation = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 2
+alignment = 1
 
 [node name="MeldRow3" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds"]
 layout_mode = 2
-theme_override_constants/separation = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 2
+alignment = 1
 
 [node name="PlayerHandArea" type="VBoxContainer" parent="MarginContainer/MainLayout"]
-custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 1.5
+theme_override_constants/separation = 3
+alignment = 1
 
 [node name="PlayerHandLabel" type="Label" parent="MarginContainer/MainLayout/PlayerHandArea"]
 layout_mode = 2
@@ -137,5 +167,6 @@ text = "Your Hand"
 horizontal_alignment = 1
 
 [node name="PlayerHand" parent="MarginContainer/MainLayout/PlayerHandArea" instance=ExtResource("2_hand")]
-custom_minimum_size = Vector2(0, 210)
+custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
+size_flags_vertical = 3

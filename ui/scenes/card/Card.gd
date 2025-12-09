@@ -18,6 +18,11 @@ var original_z_index: int = 0
 # Card dimensions (matches your assets)
 const CARD_WIDTH = 150
 const CARD_HEIGHT = 210
+const DEFAULT_CARD_SIZE := Vector2(CARD_WIDTH, CARD_HEIGHT)
+const CARD_ASPECT_RATIO := float(CARD_WIDTH) / float(CARD_HEIGHT)
+const CARD_GROUP := "card_nodes"
+
+var display_size: Vector2 = Vector2.ZERO
 
 @onready var card_sprite: TextureRect = $CardSprite
 @onready var selection_highlight: ColorRect = $SelectionHighlight
@@ -28,10 +33,50 @@ signal card_deselected(card: Card)
 signal drag_started(card: Card)
 signal drag_ended(card: Card)
 
+func _enter_tree():
+	add_to_group(CARD_GROUP)
+
+func _exit_tree():
+	if is_in_group(CARD_GROUP):
+		remove_from_group(CARD_GROUP)
+
 func _ready():
-	custom_minimum_size = Vector2(CARD_WIDTH, CARD_HEIGHT)
 	selection_highlight.visible = false
+	size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_apply_display_size()
 	update_card_visual()
+
+func set_display_size(size: Vector2) -> void:
+	display_size = size
+	_apply_display_size()
+
+func set_display_scale(scale: float) -> void:
+	set_display_size(DEFAULT_CARD_SIZE * scale)
+
+func get_display_size() -> Vector2:
+	return display_size if display_size != Vector2.ZERO else DEFAULT_CARD_SIZE
+
+func _apply_display_size() -> void:
+	var target_size := display_size
+
+	if target_size == Vector2.ZERO:
+		target_size = DEFAULT_CARD_SIZE
+
+	display_size = target_size
+
+	custom_minimum_size = target_size
+
+	size = target_size
+	pivot_offset = target_size * 0.5
+
+	if card_sprite:
+		card_sprite.custom_minimum_size = target_size
+		card_sprite.size = target_size
+
+	if selection_highlight:
+		selection_highlight.custom_minimum_size = target_size
+		selection_highlight.size = target_size
 
 func setup(p_suit: String, p_rank: String, p_uuid: String = ""):
 	"""Initialize card with suit and rank"""
