@@ -17,15 +17,34 @@ const CardScene: PackedScene = preload("res://scenes/card/Card.tscn")
 @onready var main_layout: VBoxContainer = $MarginContainer/MainLayout
 @onready var opponent_area: VBoxContainer = $MarginContainer/MainLayout/OpponentArea
 @onready var opponent_hand_container: HBoxContainer = $MarginContainer/MainLayout/OpponentArea/OpponentHand
-@onready var opponent_meld_row1: HBoxContainer = $MarginContainer/MainLayout/OpponentArea/OpponentMelds/MeldRow1
-@onready var opponent_meld_row2: HBoxContainer = $MarginContainer/MainLayout/OpponentArea/OpponentMelds/MeldRow2
-@onready var opponent_meld_row3: HBoxContainer = $MarginContainer/MainLayout/OpponentArea/OpponentMelds/MeldRow3
-@onready var table_area: HBoxContainer = $MarginContainer/MainLayout/TableArea
-@onready var deck_container: Control = $MarginContainer/MainLayout/TableArea/LeftSide/DeckArea/DeckContainer
-@onready var discard_container: Control = $MarginContainer/MainLayout/TableArea/LeftSide/DiscardArea/DiscardContainer
-@onready var player_meld_row1: HBoxContainer = $MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds/MeldRow1
-@onready var player_meld_row2: HBoxContainer = $MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds/MeldRow2
-@onready var player_meld_row3: HBoxContainer = $MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds/MeldRow3
+@onready var opponent_meld_row: HBoxContainer = $MarginContainer/MainLayout/TableArea/OpponentMeldRow
+@onready var opponent_meld_slots: Array[HBoxContainer] = [
+	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1/Placeholder/CardCenter/CardContainer,
+	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot2/Placeholder/CardCenter/CardContainer,
+	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot3/Placeholder/CardCenter/CardContainer
+]
+@onready var opponent_meld_placeholders: Array[ColorRect] = [
+	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1/Placeholder,
+	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot2/Placeholder,
+	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot3/Placeholder
+]
+@onready var table_area: VBoxContainer = $MarginContainer/MainLayout/TableArea
+@onready var center_row: HBoxContainer = $MarginContainer/MainLayout/TableArea/CenterRow
+@onready var deck_placeholder: ColorRect = $MarginContainer/MainLayout/TableArea/CenterRow/DeckStack/DeckPlaceholder
+@onready var discard_placeholder: ColorRect = $MarginContainer/MainLayout/TableArea/CenterRow/DiscardStack/DiscardPlaceholder
+@onready var deck_container: Control = $MarginContainer/MainLayout/TableArea/CenterRow/DeckStack/DeckPlaceholder/DeckContainer
+@onready var discard_container: Control = $MarginContainer/MainLayout/TableArea/CenterRow/DiscardStack/DiscardPlaceholder/DiscardContainer
+@onready var player_meld_row: HBoxContainer = $MarginContainer/MainLayout/TableArea/PlayerMeldRow
+@onready var player_meld_slots: Array[HBoxContainer] = [
+	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1/Placeholder/CardCenter/CardContainer,
+	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot2/Placeholder/CardCenter/CardContainer,
+	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot3/Placeholder/CardCenter/CardContainer
+]
+@onready var player_meld_placeholders: Array[ColorRect] = [
+	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1/Placeholder,
+	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot2/Placeholder,
+	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot3/Placeholder
+]
 @onready var player_hand_area: VBoxContainer = $MarginContainer/MainLayout/PlayerHandArea
 @onready var player_hand: Hand = $MarginContainer/MainLayout/PlayerHandArea/PlayerHand
 @onready var player_hand_container: Control = player_hand.get_node("CardContainer")
@@ -45,25 +64,28 @@ func _setup_responsive_layout() -> void:
 	player_hand_container.resized.connect(_on_layout_resized)
 	opponent_hand_container.resized.connect(_on_layout_resized)
 	table_area.resized.connect(_on_layout_resized)
-	player_meld_row1.resized.connect(_on_layout_resized)
-	opponent_meld_row1.resized.connect(_on_layout_resized)
+	center_row.resized.connect(_on_layout_resized)
+	opponent_meld_row.resized.connect(_on_layout_resized)
+	player_meld_row.resized.connect(_on_layout_resized)
+
+	for slot in opponent_meld_slots:
+		slot.resized.connect(_on_layout_resized)
+
+	for slot in player_meld_slots:
+		slot.resized.connect(_on_layout_resized)
 
 	player_hand_container.child_entered_tree.connect(_on_cards_changed)
 	player_hand_container.child_exiting_tree.connect(_on_cards_changed)
 	opponent_hand_container.child_entered_tree.connect(_on_cards_changed)
 	opponent_hand_container.child_exiting_tree.connect(_on_cards_changed)
-	opponent_meld_row1.child_entered_tree.connect(_on_cards_changed)
-	opponent_meld_row1.child_exiting_tree.connect(_on_cards_changed)
-	opponent_meld_row2.child_entered_tree.connect(_on_cards_changed)
-	opponent_meld_row2.child_exiting_tree.connect(_on_cards_changed)
-	opponent_meld_row3.child_entered_tree.connect(_on_cards_changed)
-	opponent_meld_row3.child_exiting_tree.connect(_on_cards_changed)
-	player_meld_row1.child_entered_tree.connect(_on_cards_changed)
-	player_meld_row1.child_exiting_tree.connect(_on_cards_changed)
-	player_meld_row2.child_entered_tree.connect(_on_cards_changed)
-	player_meld_row2.child_exiting_tree.connect(_on_cards_changed)
-	player_meld_row3.child_entered_tree.connect(_on_cards_changed)
-	player_meld_row3.child_exiting_tree.connect(_on_cards_changed)
+
+	for slot in opponent_meld_slots:
+		slot.child_entered_tree.connect(_on_cards_changed)
+		slot.child_exiting_tree.connect(_on_cards_changed)
+
+	for slot in player_meld_slots:
+		slot.child_entered_tree.connect(_on_cards_changed)
+		slot.child_exiting_tree.connect(_on_cards_changed)
 
 func _on_layout_resized() -> void:
 	_schedule_scaling_update()
@@ -95,9 +117,15 @@ func _calculate_card_size() -> Vector2:
 	var width_candidates: Array[float] = [
 		_usable_width(player_hand_container),
 		_usable_width(opponent_hand_container),
-		_usable_width(player_meld_row1),
-		_usable_width(opponent_meld_row1)
+		_usable_width(player_meld_row),
+		_usable_width(opponent_meld_row)
 	]
+
+	for slot in player_meld_slots:
+		width_candidates.append(_usable_width(slot))
+
+	for slot in opponent_meld_slots:
+		width_candidates.append(_usable_width(slot))
 	var available_width: float = _min_positive(width_candidates)
 	if available_width <= 0.0:
 		return Vector2.ZERO
@@ -168,18 +196,35 @@ func _update_pile_layout(container: Control) -> void:
 			label.position = current_card_size * 0.08
 
 func _update_placeholder_sizes() -> void:
-	var containers: Array = [
-		opponent_meld_row1,
-		opponent_meld_row2,
-		opponent_meld_row3,
-		player_meld_row1,
-		player_meld_row2,
-		player_meld_row3
-	]
-	for container in containers:
-		for child in container.get_children():
-			if child is ColorRect:
-				(child as ColorRect).custom_minimum_size = current_card_size
+	var meld_placeholders: Array[ColorRect] = []
+	meld_placeholders.append_array(opponent_meld_placeholders)
+	meld_placeholders.append_array(player_meld_placeholders)
+	for placeholder in meld_placeholders:
+		placeholder.custom_minimum_size = _meld_placeholder_size()
+
+	deck_placeholder.custom_minimum_size = _pile_placeholder_size()
+	discard_placeholder.custom_minimum_size = _pile_placeholder_size()
+
+	for slot in opponent_meld_slots:
+		slot.add_theme_constant_override("separation", int(round(current_card_size.x * 0.08)))
+
+	for slot in player_meld_slots:
+		slot.add_theme_constant_override("separation", int(round(current_card_size.x * 0.08)))
+
+	center_row.add_theme_constant_override("separation", int(round(current_card_size.x * 0.2)))
+	opponent_meld_row.add_theme_constant_override("separation", int(round(current_card_size.x * 0.15)))
+	player_meld_row.add_theme_constant_override("separation", int(round(current_card_size.x * 0.15)))
+
+func _meld_placeholder_size() -> Vector2:
+	var width: float = current_card_size.x * 4.0 + HAND_SIDE_PADDING * 1.5
+	var height: float = current_card_size.y * 1.25
+	return Vector2(width, height)
+
+func _pile_placeholder_size() -> Vector2:
+	var width: float = current_card_size.x + HAND_SIDE_PADDING
+	var height: float = current_card_size.y + HAND_SIDE_PADDING
+	return Vector2(width, height)
+
 
 func _center_in_container(container: Control, size: Vector2) -> Vector2:
 	var reference_size: Vector2 = container.size
@@ -194,12 +239,12 @@ func _setup_test_game():
 	"""Set up a test game with sample cards"""
 
 	_create_opponent_hand(7)
-	_create_test_meld(opponent_meld_row1, [
+	_create_test_meld(opponent_meld_slots[0], [
 		{"suit": "spades", "rank": "3"},
 		{"suit": "hearts", "rank": "3"},
 		{"suit": "diamonds", "rank": "3"}
 	])
-	_create_test_meld(opponent_meld_row2, [
+	_create_test_meld(opponent_meld_slots[1], [
 		{"suit": "clubs", "rank": "7"},
 		{"suit": "clubs", "rank": "8"},
 		{"suit": "clubs", "rank": "9"},
@@ -209,12 +254,12 @@ func _setup_test_game():
 	_create_deck_pile()
 	_create_discard_pile("hearts", "9")
 
-	_create_test_meld(player_meld_row1, [
+	_create_test_meld(player_meld_slots[0], [
 		{"suit": "spades", "rank": "K"},
 		{"suit": "hearts", "rank": "K"},
 		{"suit": "diamonds", "rank": "K"}
 	])
-	_create_test_meld(player_meld_row2, [
+	_create_test_meld(player_meld_slots[1], [
 		{"suit": "clubs", "rank": "10"},
 		{"suit": "spades", "rank": "10"},
 		{"suit": "diamonds", "rank": "10"}
@@ -282,9 +327,3 @@ func _instantiate_card() -> Card:
 	var card: Card = CardScene.instantiate()
 	card.set_display_size(current_card_size)
 	return card
-
-func _create_meld_slot(container: HBoxContainer) -> void:
-	var slot = ColorRect.new()
-	slot.custom_minimum_size = current_card_size
-	slot.color = Color(0, 0, 0, 0.1)
-	container.add_child(slot)

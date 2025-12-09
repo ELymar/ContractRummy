@@ -50,108 +50,225 @@ layout_mode = 2
 size_flags_vertical = 0
 alignment = 1
 
-[node name="OpponentMelds" type="VBoxContainer" parent="MarginContainer/MainLayout/OpponentArea"]
-layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="MeldRow1" type="HBoxContainer" parent="MarginContainer/MainLayout/OpponentArea/OpponentMelds"]
-layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="MeldRow2" type="HBoxContainer" parent="MarginContainer/MainLayout/OpponentArea/OpponentMelds"]
-layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="MeldRow3" type="HBoxContainer" parent="MarginContainer/MainLayout/OpponentArea/OpponentMelds"]
-layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="TableArea" type="HBoxContainer" parent="MarginContainer/MainLayout"]
+[node name="TableArea" type="VBoxContainer" parent="MarginContainer/MainLayout"]
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 2.5
-theme_override_constants/separation = 10
+theme_override_constants/separation = 24
 alignment = 1
 
-[node name="LeftSide" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea"]
+[node name="OpponentMeldRow" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea"]
 layout_mode = 2
-size_flags_horizontal = 0
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="OpponentMeldSlot1" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1"]
+layout_mode = 2
+text = "Meld 1"
+horizontal_alignment = 1
+
+[node name="Placeholder" type="ColorRect" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1"]
+custom_minimum_size = Vector2(220, 120)
+layout_mode = 2
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 10
-alignment = 1
 
-[node name="DeckArea" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/LeftSide"]
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1/Placeholder/CardCenter"]
 layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 3
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="DeckLabel" type="Label" parent="MarginContainer/MainLayout/TableArea/LeftSide/DeckArea"]
+[node name="OpponentMeldSlot2" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot2"]
+layout_mode = 2
+text = "Meld 2"
+horizontal_alignment = 1
+
+[node name="Placeholder" type="ColorRect" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot2"]
+custom_minimum_size = Vector2(220, 120)
+layout_mode = 2
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot2/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot2/Placeholder/CardCenter"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="OpponentMeldSlot3" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot3"]
+layout_mode = 2
+text = "Meld 3"
+horizontal_alignment = 1
+
+[node name="Placeholder" type="ColorRect" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot3"]
+custom_minimum_size = Vector2(220, 120)
+layout_mode = 2
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot3/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot3/Placeholder/CardCenter"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="CenterRow" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 48
+alignment = 1
+
+[node name="DeckStack" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/CenterRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="DeckLabel" type="Label" parent="MarginContainer/MainLayout/TableArea/CenterRow/DeckStack"]
 layout_mode = 2
 text = "Deck"
 horizontal_alignment = 1
 
-[node name="DeckContainer" type="Control" parent="MarginContainer/MainLayout/TableArea/LeftSide/DeckArea"]
-custom_minimum_size = Vector2(50, 70)
+[node name="DeckPlaceholder" type="ColorRect" parent="MarginContainer/MainLayout/TableArea/CenterRow/DeckStack"]
+custom_minimum_size = Vector2(140, 180)
 layout_mode = 2
+color = Color(1, 1, 1, 0.85)
 
-[node name="DiscardArea" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/LeftSide"]
+[node name="DeckContainer" type="Control" parent="MarginContainer/MainLayout/TableArea/CenterRow/DeckStack/DeckPlaceholder"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DiscardStack" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/CenterRow"]
 layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 3
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="DiscardLabel" type="Label" parent="MarginContainer/MainLayout/TableArea/LeftSide/DiscardArea"]
+[node name="DiscardLabel" type="Label" parent="MarginContainer/MainLayout/TableArea/CenterRow/DiscardStack"]
 layout_mode = 2
 text = "Discard"
 horizontal_alignment = 1
 
-[node name="DiscardContainer" type="Control" parent="MarginContainer/MainLayout/TableArea/LeftSide/DiscardArea"]
-custom_minimum_size = Vector2(50, 70)
+[node name="DiscardPlaceholder" type="ColorRect" parent="MarginContainer/MainLayout/TableArea/CenterRow/DiscardStack"]
+custom_minimum_size = Vector2(140, 180)
 layout_mode = 2
+color = Color(1, 1, 1, 0.85)
 
-[node name="RightSide" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea"]
+[node name="DiscardContainer" type="Control" parent="MarginContainer/MainLayout/TableArea/CenterRow/DiscardStack/DiscardPlaceholder"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PlayerMeldRow" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea"]
 layout_mode = 2
-size_flags_horizontal = 0
-size_flags_vertical = 3
-theme_override_constants/separation = 3
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
 alignment = 1
 
-[node name="PlayerMeldsLabel" type="Label" parent="MarginContainer/MainLayout/TableArea/RightSide"]
+[node name="PlayerMeldSlot1" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow"]
 layout_mode = 2
-text = "Your Melds"
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1"]
+layout_mode = 2
+text = "Meld 1"
 horizontal_alignment = 1
 
-[node name="PlayerMelds" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide"]
+[node name="Placeholder" type="ColorRect" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1"]
+custom_minimum_size = Vector2(220, 120)
 layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 2
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1/Placeholder/CardCenter"]
+layout_mode = 2
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="MeldRow1" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds"]
+[node name="PlayerMeldSlot2" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow"]
 layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 2
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="MeldRow2" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds"]
+[node name="Label" type="Label" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot2"]
 layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 2
+text = "Meld 2"
+horizontal_alignment = 1
+
+[node name="Placeholder" type="ColorRect" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot2"]
+custom_minimum_size = Vector2(220, 120)
+layout_mode = 2
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot2/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot2/Placeholder/CardCenter"]
+layout_mode = 2
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="MeldRow3" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/RightSide/PlayerMelds"]
+[node name="PlayerMeldSlot3" type="VBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow"]
 layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot3"]
+layout_mode = 2
+text = "Meld 3"
+horizontal_alignment = 1
+
+[node name="Placeholder" type="ColorRect" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot3"]
+custom_minimum_size = Vector2(220, 120)
+layout_mode = 2
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot3/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot3/Placeholder/CardCenter"]
+layout_mode = 2
+theme_override_constants/separation = 6
 alignment = 1
 
 [node name="PlayerHandArea" type="VBoxContainer" parent="MarginContainer/MainLayout"]
