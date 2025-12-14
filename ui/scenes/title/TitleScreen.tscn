@@ -97,3 +97,9 @@ custom_minimum_size = Vector2(400, 40)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "[Dev] Meld Drag Test"
+
+[node name="HandMeldTestButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(400, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "[Dev] Hand Meld Test"

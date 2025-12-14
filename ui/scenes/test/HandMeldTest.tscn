@@ -1,0 +1,84 @@
+[gd_scene load_steps=2 format=3 uid="uid://d9xvw8fmno7q"]
+
+[ext_resource type="Script" path="res://scenes/test/HandMeldTest.gd" id="1_hand_meld"]
+
+[node name="HandMeldTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_hand_meld")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.133333, 0.4, 0.2, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 30
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Hand to Meld Test"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MeldArea" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MeldArea"]
+layout_mode = 2
+text = "Meld Slot (Drag cards here)"
+horizontal_alignment = 1
+
+[node name="MeldSlot" type="ColorRect" parent="MarginContainer/VBoxContainer/MeldArea"]
+custom_minimum_size = Vector2(600, 200)
+layout_mode = 2
+size_flags_horizontal = 4
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardContainer" type="Control" parent="MarginContainer/VBoxContainer/MeldArea/MeldSlot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HandArea" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/HandArea"]
+layout_mode = 2
+text = "Your Hand"
+horizontal_alignment = 1
+
+[node name="HandContainer" type="Control" parent="MarginContainer/VBoxContainer/HandArea"]
+custom_minimum_size = Vector2(0, 180)
+layout_mode = 2
+size_flags_horizontal = 3

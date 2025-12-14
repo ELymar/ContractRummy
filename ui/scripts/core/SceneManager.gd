@@ -15,7 +15,8 @@ const SCENES = {
 	"GameScreen": "res://scenes/game/GameScreen.tscn",
 	"CardTest": "res://scenes/main/Main.tscn",  # Keep our test scene
 	"MeldTest": "res://scenes/test/MeldTest.tscn",  # Meld layout test
-	"MeldDragTest": "res://scenes/test/MeldDragTest.tscn"  # Drag & drop test
+	"MeldDragTest": "res://scenes/test/MeldDragTest.tscn",  # Drag & drop test
+	"HandMeldTest": "res://scenes/test/HandMeldTest.tscn"  # Hand to meld test
 }
 
 var current_scene: Node = null
