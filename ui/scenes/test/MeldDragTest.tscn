@@ -1,0 +1,77 @@
+[gd_scene load_steps=3 format=3 uid="uid://c8xvw8fmno6p"]
+
+[ext_resource type="Script" path="res://scenes/test/MeldDragTest.gd" id="1_meld_drag"]
+[ext_resource type="PackedScene" uid="uid://dcq3ywbxpbxes" path="res://scenes/card/Card.tscn" id="2_card"]
+
+[node name="MeldDragTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_meld_drag")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.133333, 0.4, 0.2, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Drag & Drop Meld Test"
+horizontal_alignment = 1
+
+[node name="MeldSlot" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer/MeldSlot"]
+layout_mode = 2
+text = "Meld Area"
+horizontal_alignment = 1
+
+[node name="Placeholder" type="ColorRect" parent="CenterContainer/VBoxContainer/MeldSlot"]
+custom_minimum_size = Vector2(500, 200)
+layout_mode = 2
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardContainer" type="Control" parent="CenterContainer/VBoxContainer/MeldSlot/Placeholder"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SourceArea" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer/SourceArea"]
+layout_mode = 2
+text = "Drag Cards From Here"
+horizontal_alignment = 1
+
+[node name="SourceContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer/SourceArea"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1

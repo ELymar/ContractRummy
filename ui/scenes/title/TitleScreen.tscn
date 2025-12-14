@@ -39,55 +39,61 @@ text = "CONTRACT RUMMY"
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="CenterContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="ButtonContainer" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 15
+theme_override_constants/separation = 10
 
 [node name="NewGameButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(400, 70)
+custom_minimum_size = Vector2(400, 55)
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 24
 text = "New Game"
 
 [node name="JoinGameButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(400, 70)
+custom_minimum_size = Vector2(400, 55)
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 24
 text = "Join Game"
 
 [node name="RulesButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(400, 70)
+custom_minimum_size = Vector2(400, 55)
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 24
 text = "Rules"
 
 [node name="OptionsButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(400, 70)
+custom_minimum_size = Vector2(400, 55)
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 24
 text = "Options"
 
 [node name="AboutButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(400, 70)
+custom_minimum_size = Vector2(400, 55)
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 24
 text = "About"
 
 [node name="Spacer2" type="Control" parent="CenterContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
 [node name="CardTestButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(400, 50)
+custom_minimum_size = Vector2(400, 40)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "[Dev] Card Test"
 
 [node name="GameScreenButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(400, 50)
+custom_minimum_size = Vector2(400, 40)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "[Dev] Game Screen"
+
+[node name="MeldDragTestButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(400, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "[Dev] Meld Drag Test"

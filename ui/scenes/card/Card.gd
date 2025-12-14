@@ -66,8 +66,7 @@ func _apply_display_size() -> void:
 	display_size = target_size
 
 	custom_minimum_size = target_size
-
-	size = target_size
+	size = target_size  # Always set size - containers will override if needed
 	pivot_offset = target_size * 0.5
 
 	if card_sprite:

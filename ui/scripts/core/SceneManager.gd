@@ -13,7 +13,9 @@ const SCENES = {
 	"GameSetup": "res://scenes/lobby/GameSetup.tscn",
 	"JoinGame": "res://scenes/lobby/JoinGame.tscn",
 	"GameScreen": "res://scenes/game/GameScreen.tscn",
-	"CardTest": "res://scenes/main/Main.tscn"  # Keep our test scene
+	"CardTest": "res://scenes/main/Main.tscn",  # Keep our test scene
+	"MeldTest": "res://scenes/test/MeldTest.tscn",  # Meld layout test
+	"MeldDragTest": "res://scenes/test/MeldDragTest.tscn"  # Drag & drop test
 }
 
 var current_scene: Node = null

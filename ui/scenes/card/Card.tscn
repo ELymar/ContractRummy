@@ -4,8 +4,9 @@
 
 [node name="Card" type="Control"]
 custom_minimum_size = Vector2(150, 210)
-layout_mode = 3
-anchors_preset = 0
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 script = ExtResource("1_card")
 
 [node name="CardSprite" type="TextureRect" parent="."]

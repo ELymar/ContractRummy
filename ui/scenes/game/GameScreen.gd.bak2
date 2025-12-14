@@ -55,8 +55,8 @@ var _scaling_update_queued: bool = false
 func _ready():
 	print("Game Screen loaded - Building layout")
 	_setup_test_game()
-	_setup_responsive_layout()
-	_schedule_scaling_update()
+	# DISABLED FOR DEBUGGING: _setup_responsive_layout()
+	# DISABLED FOR DEBUGGING: _schedule_scaling_update()
 
 func _setup_responsive_layout() -> void:
 	resized.connect(_on_layout_resized)
@@ -174,18 +174,12 @@ func _apply_card_size(size: Vector2) -> void:
 	current_card_size = size
 	player_hand.set_card_size(size)
 
-	# Update pile layouts FIRST, before global card size update
-	# This ensures deck/discard cards get proper manual positioning
-	_update_pile_layout(deck_container)
-	_update_pile_layout(discard_container)
-
-	# Update all other cards (this will update melds and hand cards)
 	var cards: Array = get_tree().get_nodes_in_group(Card.CARD_GROUP)
 	for card in cards:
-		# Skip deck/discard cards - they were already handled
-		if card.get_parent() != deck_container and card.get_parent() != discard_container:
-			(card as Card).set_display_size(size)
+		(card as Card).set_display_size(size)
 
+	_update_pile_layout(deck_container)
+	_update_pile_layout(discard_container)
 	_update_placeholder_sizes()
 
 func _update_meld_layout(container: HBoxContainer) -> void:
@@ -333,9 +327,11 @@ func _create_test_meld(container: HBoxContainer, card_data: Array) -> void:
 		var card: Card = _instantiate_card()
 		card.setup(data["suit"], data["rank"])
 		card.set_face_up(true)
+		# Use fixed size like MeldTest
+		card.set_display_size(Vector2(105, 147))
 		container.add_child(card)
-	if card_data.size() > 0:
-		_schedule_scaling_update()
+	# DISABLED FOR DEBUGGING: if card_data.size() > 0:
+	# DISABLED FOR DEBUGGING: 	_schedule_scaling_update()
 
 	# Debug logging
 	await get_tree().process_frame
@@ -369,17 +365,6 @@ func _create_deck_pile() -> void:
 	count_label.add_theme_constant_override("outline_size", 2)
 	deck_container.add_child(count_label)
 	_schedule_scaling_update()
-
-	# Debug
-	await get_tree().process_frame
-	await get_tree().process_frame
-	print("\n=== DECK ===")
-	print("Container: pos=%s, size=%s" % [deck_container.position, deck_container.size])
-	for child in deck_container.get_children():
-		if child is Card:
-			print("Card: layout_mode=%s, pos=%s, size=%s, global_pos=%s" % [
-				child.get("layout_mode"), child.position, child.size, child.global_position
-			])
 
 func _create_discard_pile(suit: String, rank: String) -> void:
 	var card: Card = _instantiate_card()

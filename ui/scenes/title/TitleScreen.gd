@@ -7,6 +7,7 @@ extends Control
 @onready var about_button = $CenterContainer/VBoxContainer/ButtonContainer/AboutButton
 @onready var card_test_button = $CenterContainer/VBoxContainer/ButtonContainer/CardTestButton
 @onready var game_screen_button = $CenterContainer/VBoxContainer/ButtonContainer/GameScreenButton
+@onready var meld_drag_test_button = $CenterContainer/VBoxContainer/ButtonContainer/MeldDragTestButton
 
 func _ready():
 	print("Title screen loaded")
@@ -19,6 +20,7 @@ func _ready():
 	about_button.pressed.connect(_on_about_pressed)
 	card_test_button.pressed.connect(_on_card_test_pressed)
 	game_screen_button.pressed.connect(_on_game_screen_pressed)
+	meld_drag_test_button.pressed.connect(_on_meld_drag_test_pressed)
 
 func _on_new_game_pressed():
 	print("New Game clicked")
@@ -47,3 +49,7 @@ func _on_card_test_pressed():
 func _on_game_screen_pressed():
 	print("Game Screen clicked")
 	SceneManager.change_scene("GameScreen")
+
+func _on_meld_drag_test_pressed():
+	print("Meld Drag Test clicked")
+	SceneManager.change_scene("MeldDragTest")

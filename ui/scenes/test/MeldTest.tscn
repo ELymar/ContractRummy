@@ -1,0 +1,63 @@
+[gd_scene load_steps=2 format=3 uid="uid://test_meld_scene"]
+
+[ext_resource type="Script" path="res://scenes/test/MeldTest.gd" id="1_meld_test"]
+
+[node name="MeldTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_meld_test")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.133333, 0.4, 0.2, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Meld Slot Test"
+horizontal_alignment = 1
+
+[node name="MeldSlot" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer/MeldSlot"]
+layout_mode = 2
+text = "Test Meld"
+horizontal_alignment = 1
+
+[node name="Placeholder" type="ColorRect" parent="CenterContainer/VBoxContainer/MeldSlot"]
+custom_minimum_size = Vector2(400, 200)
+layout_mode = 2
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer/MeldSlot/Placeholder"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+alignment = 1
