@@ -35,3 +35,5 @@ ui/export_presets.cfg
 *.etc2
 *.ctex
 *.fontdata
+# Playwright MCP artifacts
+.playwright-mcp/
