@@ -78,13 +78,13 @@ custom_minimum_size = Vector2(220, 120)
 layout_mode = 2
 color = Color(1, 1, 1, 0.85)
 
-[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1/Placeholder"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1/Placeholder/CardCenter"]
+layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
@@ -103,13 +103,13 @@ custom_minimum_size = Vector2(220, 120)
 layout_mode = 2
 color = Color(1, 1, 1, 0.85)
 
-[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot2/Placeholder"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot2/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot2/Placeholder/CardCenter"]
+layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
@@ -128,13 +128,13 @@ custom_minimum_size = Vector2(220, 120)
 layout_mode = 2
 color = Color(1, 1, 1, 0.85)
 
-[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot3/Placeholder"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot3/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot3/Placeholder/CardCenter"]
+layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
@@ -211,13 +211,13 @@ custom_minimum_size = Vector2(220, 120)
 layout_mode = 2
 color = Color(1, 1, 1, 0.85)
 
-[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1/Placeholder"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1/Placeholder/CardCenter"]
+layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
@@ -236,13 +236,13 @@ custom_minimum_size = Vector2(220, 120)
 layout_mode = 2
 color = Color(1, 1, 1, 0.85)
 
-[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot2/Placeholder"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot2/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot2/Placeholder/CardCenter"]
+layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
@@ -261,13 +261,13 @@ custom_minimum_size = Vector2(220, 120)
 layout_mode = 2
 color = Color(1, 1, 1, 0.85)
 
-[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot3/Placeholder"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="CardCenter" type="CenterContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot3/Placeholder"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardContainer" type="HBoxContainer" parent="MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot3/Placeholder/CardCenter"]
+layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 

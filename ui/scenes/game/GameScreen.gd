@@ -19,9 +19,9 @@ const CardScene: PackedScene = preload("res://scenes/card/Card.tscn")
 @onready var opponent_hand_container: HBoxContainer = $MarginContainer/MainLayout/OpponentArea/OpponentHand
 @onready var opponent_meld_row: HBoxContainer = $MarginContainer/MainLayout/TableArea/OpponentMeldRow
 @onready var opponent_meld_slots: Array[HBoxContainer] = [
-	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1/Placeholder/CardContainer,
-	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot2/Placeholder/CardContainer,
-	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot3/Placeholder/CardContainer
+	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1/Placeholder/CardCenter/CardContainer,
+	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot2/Placeholder/CardCenter/CardContainer,
+	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot3/Placeholder/CardCenter/CardContainer
 ]
 @onready var opponent_meld_placeholders: Array[ColorRect] = [
 	$MarginContainer/MainLayout/TableArea/OpponentMeldRow/OpponentMeldSlot1/Placeholder,
@@ -36,9 +36,9 @@ const CardScene: PackedScene = preload("res://scenes/card/Card.tscn")
 @onready var discard_container: Control = $MarginContainer/MainLayout/TableArea/CenterRow/DiscardStack/DiscardPlaceholder/DiscardContainer
 @onready var player_meld_row: HBoxContainer = $MarginContainer/MainLayout/TableArea/PlayerMeldRow
 @onready var player_meld_slots: Array[HBoxContainer] = [
-	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1/Placeholder/CardContainer,
-	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot2/Placeholder/CardContainer,
-	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot3/Placeholder/CardContainer
+	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1/Placeholder/CardCenter/CardContainer,
+	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot2/Placeholder/CardCenter/CardContainer,
+	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot3/Placeholder/CardCenter/CardContainer
 ]
 @onready var player_meld_placeholders: Array[ColorRect] = [
 	$MarginContainer/MainLayout/TableArea/PlayerMeldRow/PlayerMeldSlot1/Placeholder,
@@ -174,44 +174,13 @@ func _apply_card_size(size: Vector2) -> void:
 	current_card_size = size
 	player_hand.set_card_size(size)
 
-	# Update pile layouts FIRST, before global card size update
-	# This ensures deck/discard cards get proper manual positioning
-	_update_pile_layout(deck_container)
-	_update_pile_layout(discard_container)
-
-	# Update all other cards (this will update melds and hand cards)
 	var cards: Array = get_tree().get_nodes_in_group(Card.CARD_GROUP)
 	for card in cards:
-		# Skip deck/discard cards - they were already handled
-		if card.get_parent() != deck_container and card.get_parent() != discard_container:
-			(card as Card).set_display_size(size)
+		(card as Card).set_display_size(size)
 
+	_update_pile_layout(deck_container)
+	_update_pile_layout(discard_container)
 	_update_placeholder_sizes()
-
-func _update_meld_layout(container: HBoxContainer) -> void:
-	"""Manually position cards in a meld slot"""
-	if container == null:
-		return
-
-	var cards: Array[Card] = []
-	for child in container.get_children():
-		if child is Card:
-			cards.append(child as Card)
-
-	if cards.is_empty():
-		return
-
-	# Calculate layout
-	var spacing = current_card_size.x * 0.08
-	var total_width = cards.size() * current_card_size.x + (cards.size() - 1) * spacing
-	var start_x = max(0.0, (container.size.x - total_width) * 0.5)
-	var y_pos = max(0.0, (container.size.y - current_card_size.y) * 0.5)
-
-	# Position each card
-	for i in range(cards.size()):
-		var card = cards[i]
-		var x_pos = start_x + i * (current_card_size.x + spacing)
-		card.position = Vector2(x_pos, y_pos)
 
 func _update_pile_layout(container: Control) -> void:
 	if container == null:
@@ -221,8 +190,6 @@ func _update_pile_layout(container: Control) -> void:
 		if child is Card:
 			var card: Card = child as Card
 			card.set_display_size(current_card_size)
-			# Use manual positioning for pile cards
-			card.set("layout_mode", 0)  # Position mode
 			card.position = _center_in_container(container, current_card_size)
 		elif child is Label:
 			var label: Label = child as Label
@@ -232,16 +199,8 @@ func _update_placeholder_sizes() -> void:
 	var meld_placeholders: Array[ColorRect] = []
 	meld_placeholders.append_array(opponent_meld_placeholders)
 	meld_placeholders.append_array(player_meld_placeholders)
-
-	# Set opponent meld placeholder sizes based on card count
-	for i in range(opponent_meld_placeholders.size()):
-		var card_count = opponent_meld_slots[i].get_child_count()
-		opponent_meld_placeholders[i].custom_minimum_size = _meld_placeholder_size(card_count)
-
-	# Set player meld placeholder sizes based on card count
-	for i in range(player_meld_placeholders.size()):
-		var card_count = player_meld_slots[i].get_child_count()
-		player_meld_placeholders[i].custom_minimum_size = _meld_placeholder_size(card_count)
+	for placeholder in meld_placeholders:
+		placeholder.custom_minimum_size = _meld_placeholder_size()
 
 	deck_placeholder.custom_minimum_size = _pile_placeholder_size()
 	discard_placeholder.custom_minimum_size = _pile_placeholder_size()
@@ -256,12 +215,8 @@ func _update_placeholder_sizes() -> void:
 	opponent_meld_row.add_theme_constant_override("separation", int(round(current_card_size.x * 0.15)))
 	player_meld_row.add_theme_constant_override("separation", int(round(current_card_size.x * 0.15)))
 
-func _meld_placeholder_size(card_count: int = 0) -> Vector2:
-	# Calculate width based on actual card count, with minimum of 3 cards space
-	var min_cards: int = max(3, card_count) if card_count > 0 else 4
-	var spacing_between_cards: float = current_card_size.x * 0.08  # 8% of card width for spacing
-	var total_spacing: float = spacing_between_cards * max(0, min_cards - 1)
-	var width: float = current_card_size.x * min_cards + total_spacing + HAND_SIDE_PADDING
+func _meld_placeholder_size() -> Vector2:
+	var width: float = current_card_size.x * 4.0 + HAND_SIDE_PADDING * 1.5
 	var height: float = current_card_size.y * 1.25
 	return Vector2(width, height)
 
@@ -337,24 +292,6 @@ func _create_test_meld(container: HBoxContainer, card_data: Array) -> void:
 	if card_data.size() > 0:
 		_schedule_scaling_update()
 
-	# Debug logging
-	await get_tree().process_frame
-	await get_tree().process_frame
-
-	var placeholder = container.get_parent()
-	print("\n=== GameScreen Meld: %s ===" % placeholder.get_parent().name)
-	print("Placeholder: pos=%s, size=%s, custom_min=%s" % [placeholder.position, placeholder.size, placeholder.custom_minimum_size])
-	print("CardContainer: pos=%s, size=%s, global_pos=%s, alignment=%s" % [container.position, container.size, container.global_position, container.alignment])
-	print("CardContainer anchors: L=%s R=%s T=%s B=%s" % [container.anchor_left, container.anchor_right, container.anchor_top, container.anchor_bottom])
-
-	for i in range(min(3, container.get_child_count())):
-		var card = container.get_child(i)
-		if card is Card:
-			print("  Card %d: layout_mode=%s, pos=%s, size=%s, global_pos=%s, size_flags_h=%s, size_flags_v=%s" % [
-				i, card.get("layout_mode"), card.position, card.size, card.global_position,
-				card.size_flags_horizontal, card.size_flags_vertical
-			])
-
 func _create_deck_pile() -> void:
 	var card: Card = _instantiate_card()
 	card.set_face_up(false)
@@ -369,17 +306,6 @@ func _create_deck_pile() -> void:
 	count_label.add_theme_constant_override("outline_size", 2)
 	deck_container.add_child(count_label)
 	_schedule_scaling_update()
-
-	# Debug
-	await get_tree().process_frame
-	await get_tree().process_frame
-	print("\n=== DECK ===")
-	print("Container: pos=%s, size=%s" % [deck_container.position, deck_container.size])
-	for child in deck_container.get_children():
-		if child is Card:
-			print("Card: layout_mode=%s, pos=%s, size=%s, global_pos=%s" % [
-				child.get("layout_mode"), child.position, child.size, child.global_position
-			])
 
 func _create_discard_pile(suit: String, rank: String) -> void:
 	var card: Card = _instantiate_card()

@@ -30,10 +30,6 @@ func add_card(card: Card):
 	cards.append(card)
 	card_container.add_child(card)
 
-	# Use manual positioning for hand cards
-	card.set_meta("layout_mode_backup", card.get("layout_mode"))
-	card.set("layout_mode", 0)  # Position mode for manual placement
-
 	card.drag_started.connect(_on_card_drag_started)
 	card.drag_ended.connect(_on_card_drag_ended)
 
@@ -81,12 +77,7 @@ func _update_card_positions(animate: bool = true):
 			card.position = target_pos
 
 func _get_slot_position(index: int) -> Vector2:
-	# Calculate the slot's left edge
-	var slot_x = _current_start_x + index * (card_size.x + _current_spacing)
-	# Center the card within the available slot width by adding half the spacing
-	# This assumes each slot has width of (card_size.x + spacing)
-	# and we want the card centered in that space
-	return Vector2(slot_x, _current_y)
+	return Vector2(_current_start_x + index * (card_size.x + _current_spacing), _current_y)
 
 func _on_card_drag_started(card: Card):
 	"""Handle when a card starts being dragged"""

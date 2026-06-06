@@ -42,30 +42,122 @@ text = "Hand to Meld Test"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="MeldArea" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="TableArea" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 20
+
+[node name="DeckDiscardRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/TableArea"]
+layout_mode = 2
+theme_override_constants/separation = 40
 alignment = 1
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MeldArea"]
+[node name="DeckStack" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TableArea/DeckDiscardRow"]
 layout_mode = 2
-text = "Meld Slot (Drag cards here)"
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TableArea/DeckDiscardRow/DeckStack"]
+layout_mode = 2
+text = "Deck"
 horizontal_alignment = 1
 
-[node name="MeldSlot" type="ColorRect" parent="MarginContainer/VBoxContainer/MeldArea"]
-custom_minimum_size = Vector2(600, 200)
+[node name="DeckSlot" type="ColorRect" parent="MarginContainer/VBoxContainer/TableArea/DeckDiscardRow/DeckStack"]
+custom_minimum_size = Vector2(140, 180)
 layout_mode = 2
-size_flags_horizontal = 4
 color = Color(1, 1, 1, 0.85)
 
-[node name="CardContainer" type="Control" parent="MarginContainer/VBoxContainer/MeldArea/MeldSlot"]
+[node name="CardContainer" type="Control" parent="MarginContainer/VBoxContainer/TableArea/DeckDiscardRow/DeckStack/DeckSlot"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="DiscardStack" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TableArea/DeckDiscardRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TableArea/DeckDiscardRow/DiscardStack"]
+layout_mode = 2
+text = "Discard"
+horizontal_alignment = 1
+
+[node name="DiscardSlot" type="ColorRect" parent="MarginContainer/VBoxContainer/TableArea/DeckDiscardRow/DiscardStack"]
+custom_minimum_size = Vector2(140, 180)
+layout_mode = 2
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardContainer" type="Control" parent="MarginContainer/VBoxContainer/TableArea/DeckDiscardRow/DiscardStack/DiscardSlot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MeldsRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/TableArea"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="MeldSlot1" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TableArea/MeldsRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TableArea/MeldsRow/MeldSlot1"]
+layout_mode = 2
+text = "Meld 1"
+horizontal_alignment = 1
+
+[node name="Placeholder" type="ColorRect" parent="MarginContainer/VBoxContainer/TableArea/MeldsRow/MeldSlot1"]
+custom_minimum_size = Vector2(350, 160)
+layout_mode = 2
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardContainer" type="Control" parent="MarginContainer/VBoxContainer/TableArea/MeldsRow/MeldSlot1/Placeholder"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MeldSlot2" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TableArea/MeldsRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TableArea/MeldsRow/MeldSlot2"]
+layout_mode = 2
+text = "Meld 2"
+horizontal_alignment = 1
+
+[node name="Placeholder" type="ColorRect" parent="MarginContainer/VBoxContainer/TableArea/MeldsRow/MeldSlot2"]
+custom_minimum_size = Vector2(350, 160)
+layout_mode = 2
+color = Color(1, 1, 1, 0.85)
+
+[node name="CardContainer" type="Control" parent="MarginContainer/VBoxContainer/TableArea/MeldsRow/MeldSlot2/Placeholder"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ActionButtons" type="HBoxContainer" parent="MarginContainer/VBoxContainer/TableArea"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="EndTurnButton" type="Button" parent="MarginContainer/VBoxContainer/TableArea/ActionButtons"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+text = "End Turn"
 
 [node name="HandArea" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
