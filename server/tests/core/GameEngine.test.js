@@ -77,6 +77,17 @@ describe('GameEngine', () => {
       const hasError = evts.some((e) => e.type === 'ERROR' && /dead/.test(e.payload.message));
       expect(hasError).toBe(true);
     });
+
+    test('should prevent taking from discard once the player is down', () => {
+      const Card = require('../../src/core/domain/Card');
+      engine.state.burnPile.addCard(new Card('Hearts', 'King'));
+      engine.state.players[1].isDown = true; // p2 has gone down
+
+      const evts = engine.apply({type: ActionType.TAKE_FROM_DISCARD, playerId: 'p2'});
+      const hasError = evts.some((e) => e.type === 'ERROR' && /down/.test(e.payload.message));
+      expect(hasError).toBe(true);
+      expect(engine.state.players[1].tookCard).toBe(false); // nothing taken
+    });
   });
 
   describe('DISCARD Action', () => {

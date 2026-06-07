@@ -17,6 +17,11 @@ class TakeFromDiscardHandler extends ActionHandler {
       return this.createError('Already drew a card this turn');
     }
 
+    // Once a player is down they may only draw from the deck.
+    if (player.isDown) {
+      return this.createError('Cannot take from the discard pile once you are down');
+    }
+
     // Validate burn pile state
     if (this.state.burnPile.cards.length === 0) {
       return this.createError('Burn pile is empty');

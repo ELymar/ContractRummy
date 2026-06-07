@@ -238,7 +238,16 @@ export class TableScene extends Phaser.Scene {
     if (!view.burnTop) return;
     const img = this.add.image(LAYOUT.discard.x, LAYOUT.discard.y, cardKey(view.burnTop));
     img.setDisplaySize(CARD_W, CARD_H).setInteractive({ useHandCursor: true });
-    img.on('pointerup', () => this.session.send({ type: ActionType.TAKE_FROM_DISCARD }));
+    img.on('pointerup', () => {
+      const v = this.session.view;
+      if (v?.validActions.includes(ActionType.TAKE_FROM_DISCARD)) {
+        this.session.send({ type: ActionType.TAKE_FROM_DISCARD });
+      } else if (v?.youAreDown) {
+        this.toast('Once you are down you can only draw from the stock.');
+      } else if (v?.tookCard) {
+        this.toast("You've already drawn this turn.");
+      }
+    });
     this.dynamic.add(img);
   }
 
