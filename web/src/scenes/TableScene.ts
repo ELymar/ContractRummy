@@ -36,6 +36,7 @@ interface ButtonRef {
   label: Phaser.GameObjects.Text;
   enabled: (v: GameView) => boolean;
   onClick: () => void;
+  alwaysClickable: boolean; // fire onClick even when disabled (to explain why)
 }
 
 /**
@@ -48,6 +49,7 @@ export class TableScene extends Phaser.Scene {
   private dynamic!: Phaser.GameObjects.Container;
   private statusText!: Phaser.GameObjects.Text;
   private contractText!: Phaser.GameObjects.Text;
+  private hintText!: Phaser.GameObjects.Text;
   private toastText!: Phaser.GameObjects.Text;
 
   private selected = new Set<string>(); // hand card uuids chosen for lay-down
@@ -74,6 +76,9 @@ export class TableScene extends Phaser.Scene {
     this.contractText = this.add.text(LAYOUT.contract.x, LAYOUT.contract.y, '', {
       color: '#fde68a', fontSize: '15px',
     }).setDepth(50);
+    this.hintText = this.add.text(640, 596, '', {
+      color: '#bbf7d0', fontSize: '15px',
+    }).setOrigin(0.5).setDepth(50);
     this.toastText = this.add.text(640, 180, '', {
       color: '#fecaca', fontSize: '20px', backgroundColor: '#7f1d1d', padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setDepth(60).setAlpha(0);
@@ -108,7 +113,8 @@ export class TableScene extends Phaser.Scene {
     this.makeButton(b, 'Sort', () => true, () => this.toggleSort());
     this.makeButton(c, 'Lay Down',
       (v) => this.canLayDown(v),
-      () => this.layDown());
+      () => this.layDown(),
+      true); // clickable while disabled so it can explain why
     this.makeButton(d, 'End Turn',
       (v) => v.validActions.includes(ActionType.END_TURN),
       () => this.session.send({ type: ActionType.END_TURN }));
@@ -124,16 +130,22 @@ export class TableScene extends Phaser.Scene {
       .setOrigin(0.5).setAlpha(0.5).setDepth(2);
   }
 
-  private makeButton(y: number, label: string, enabled: ButtonRef['enabled'], onClick: () => void): void {
+  private makeButton(
+    y: number,
+    label: string,
+    enabled: ButtonRef['enabled'],
+    onClick: () => void,
+    alwaysClickable = false,
+  ): void {
     const { x, w, h } = LAYOUT.buttons;
     const bg = this.add.rectangle(x, y, w, h, 0x166534).setStrokeStyle(2, 0x86efac)
       .setInteractive({ useHandCursor: true }).setDepth(40);
     const text = this.add.text(x, y, label, { color: '#ffffff', fontSize: '15px' })
       .setOrigin(0.5).setDepth(41);
-    const ref: ButtonRef = { bg, label: text, enabled, onClick };
+    const ref: ButtonRef = { bg, label: text, enabled, onClick, alwaysClickable };
     bg.on('pointerup', () => {
       const v = this.session.view;
-      if (v && ref.enabled(v)) ref.onClick();
+      if (v && (ref.alwaysClickable || ref.enabled(v))) ref.onClick();
     });
     this.buttons.push(ref);
   }
@@ -173,7 +185,22 @@ export class TableScene extends Phaser.Scene {
     this.statusText.setText(`Round ${view.round}    Stock ${view.deckCount}    ${turn}`);
     const down = view.youAreDown ? "   ✓ you're down" : '';
     this.contractText.setText(view.contract ? `Contract: ${view.contract.description}${down}` : '');
+    this.hintText.setText(this.hintFor(view));
     this.refreshButtons(view);
+  }
+
+  /** A one-line "what to do now" prompt under the table. */
+  private hintFor(view: GameView): string {
+    if (!view.isYourTurn) return 'AI is playing…';
+    if (view.youAreDown) return 'Drag a card onto any meld to lay it off, then discard.';
+    if (!view.tookCard) {
+      return view.firstTurn
+        ? 'First turn — drag a card to the discard pile to start (no draw).'
+        : 'Draw from the stock or take the discard to begin your turn.';
+    }
+    const sel = this.selected.size;
+    if (sel > 0) return `${sel} card${sel === 1 ? '' : 's'} selected — press Lay Down, or tap to deselect.`;
+    return 'Tap cards to pick your melds, then Lay Down — or drag a card to the discard pile.';
   }
 
   private renderOpponents(view: GameView): void {
@@ -198,7 +225,12 @@ export class TableScene extends Phaser.Scene {
     if (view.deckCount <= 0) return;
     const img = this.add.image(LAYOUT.stock.x, LAYOUT.stock.y, CARD_BACK_KEY);
     img.setDisplaySize(CARD_W, CARD_H).setInteractive({ useHandCursor: true });
-    img.on('pointerup', () => this.session.send({ type: ActionType.DRAW }));
+    img.on('pointerup', () => {
+      const v = this.session.view;
+      if (v?.validActions.includes(ActionType.DRAW)) this.session.send({ type: ActionType.DRAW });
+      else if (v?.firstTurn) this.toast('First turn — discard a card to start (no draw).');
+      else this.toast("You can't draw right now.");
+    });
     this.dynamic.add(img);
   }
 
@@ -310,11 +342,24 @@ export class TableScene extends Phaser.Scene {
   private layDown(): void {
     const view = this.session.view;
     if (!view || !view.contract) return;
+
+    if (!view.isYourTurn) return this.toast('Wait for your turn.');
+    if (view.youAreDown) return this.toast("You're already down — drag cards onto melds to lay off.");
+    if (!view.validActions.includes(ActionType.LAY_DOWN)) {
+      return this.toast(
+        view.tookCard ? "You can't lay down right now." : 'Draw a card first, then lay down.',
+      );
+    }
+
     const result = findContract(this.layDownSource(view), view.contract);
     if (!result) {
-      this.toast('Selected cards do not form the contract');
-      return;
+      return this.toast(
+        this.selected.size > 0
+          ? `Those cards don't complete: ${view.contract.description}`
+          : `You don't have the full contract yet: ${view.contract.description}`,
+      );
     }
+
     this.session.send({ type: ActionType.LAY_DOWN, payload: { melds: result.melds } });
     this.selected.clear();
   }

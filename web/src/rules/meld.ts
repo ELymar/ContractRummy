@@ -14,6 +14,26 @@ export const isJoker = (c: CardDTO): boolean => c.value === 'Joker' || c.suit ==
 const rankNum = (value: string): number => VALUES.indexOf(value as Value) + 2;
 const successor = (value: Value): Value => VALUES[(VALUES.indexOf(value) + 1) % VALUES.length];
 
+/** All k-sized combinations of arr (k small; jokers number <= 2 in practice). */
+function combinations<T>(arr: T[], k: number): T[][] {
+  if (k === 0) return [[]];
+  if (k > arr.length) return [];
+  const out: T[][] = [];
+  const rec = (start: number, combo: T[]): void => {
+    if (combo.length === k) {
+      out.push(combo.slice());
+      return;
+    }
+    for (let i = start; i < arr.length; i++) {
+      combo.push(arr[i]);
+      rec(i + 1, combo);
+      combo.pop();
+    }
+  };
+  rec(0, []);
+  return out;
+}
+
 // --- validity oracles (mirror Utils.js) -----------------------------------
 
 export function isValidDupes(cards: CardDTO[]): boolean {
@@ -73,8 +93,12 @@ function candidateSets(hand: CardDTO[]): Meld[] {
   }
   const out: Meld[] = [];
   for (const naturals of byValue.values()) {
-    if (naturals.length >= 3) out.push(makeMeld(naturals.slice(0, 3), 'set'));
-    else if (naturals.length === 2 && jokers.length >= 1) out.push(makeMeld([...naturals, jokers[0]], 'set'));
+    if (naturals.length >= 3) {
+      out.push(makeMeld(naturals.slice(0, 3), 'set'));
+    } else if (naturals.length === 2 && jokers.length >= 1) {
+      // One candidate per joker, so two joker-using melds can take distinct jokers.
+      for (const joker of jokers) out.push(makeMeld([...naturals, joker], 'set'));
+    }
   }
   return out.filter((m) => isValidDupes(m.cards));
 }
@@ -107,15 +131,18 @@ function candidateRuns(hand: CardDTO[], lengths: number[]): Meld[] {
           }
         }
         if (naturals < 2 || gaps > jokerUuids.length) continue;
-        let j = 0;
-        const built = slots.map((c) =>
-          c ? c : ({ value: 'Joker', suit: 'Joker', uuid: jokerUuids[j++] } as CardDTO),
-        );
-        const meld = makeMeld(built, 'sequence');
-        const key = `${suit}:${meld.cardUuids.join(',')}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        if (isValidSequence(meld.cards)) out.push(meld);
+        // One candidate per choice of which jokers fill the gaps.
+        for (const combo of combinations(jokerUuids, gaps)) {
+          let j = 0;
+          const built = slots.map((c) =>
+            c ? c : ({ value: 'Joker', suit: 'Joker', uuid: combo[j++] } as CardDTO),
+          );
+          const meld = makeMeld(built, 'sequence');
+          const key = `${suit}:${meld.cardUuids.join(',')}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          if (isValidSequence(meld.cards)) out.push(meld);
+        }
       }
     }
   }

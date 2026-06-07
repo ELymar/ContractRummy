@@ -37,6 +37,19 @@ describe('findContract', () => {
     expect(types).toEqual(['sequence', 'set'].sort());
   });
 
+  test('uses two jokers for two sets that each need one', () => {
+    // Regression: both joker-using sets must get DISTINCT jokers.
+    const hand = [
+      card('Seven', 'Diamonds'), card('Seven', 'Spades'), joker(),
+      card('Nine', 'Spades'), card('Nine', 'Clubs'), joker(),
+    ];
+    const result = findContract(hand, getContractForRound(1));
+    expect(result).not.toBeNull();
+    expect(result.melds).toHaveLength(2);
+    const used = result.melds.flatMap((m) => m.cardUuids);
+    expect(new Set(used).size).toBe(6); // all six distinct, both jokers used
+  });
+
   test('uses a joker to complete a run', () => {
     const hand = [
       card('Queen', 'Hearts'), card('Queen', 'Spades'), card('Queen', 'Clubs'),

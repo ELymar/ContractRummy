@@ -51,8 +51,10 @@ export class LocalSession implements Session {
       return out;
     };
     const yourHand = [
-      ...pull((c) => c.value === 'King', 3),
-      ...pull((c) => c.value === 'Queen', 3),
+      // Two sets that each need a joker — exercises the joker-allocation path.
+      ...pull((c) => c.value === 'King', 2),
+      ...pull((c) => c.value === 'Queen', 2),
+      ...pull((c) => c.value === 'Joker', 2),
       ...this.deck.splice(0, 5),
     ];
     const burnTop = this.deck.splice(0, 1)[0] ?? null;

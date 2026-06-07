@@ -16,6 +16,26 @@ const SUITS = ['Hearts', 'Spades', 'Clubs', 'Diamonds'];
 
 const isJoker = (c) => c.value === 'Joker' || c.suit === 'Joker';
 
+/** All k-sized combinations of arr (k small; jokers number <= 2 in practice). */
+function combinations(arr, k) {
+  if (k === 0) return [[]];
+  if (k > arr.length) return [];
+  const out = [];
+  const rec = (start, combo) => {
+    if (combo.length === k) {
+      out.push(combo.slice());
+      return;
+    }
+    for (let i = start; i < arr.length; i++) {
+      combo.push(arr[i]);
+      rec(i + 1, combo);
+      combo.pop();
+    }
+  };
+  rec(0, []);
+  return out;
+}
+
 // Two=2 .. Ten=10, Jack=11, Queen=12, King=13, Ace=14 (high). Ace can also be
 // low (1) for A-2-3-4 runs; callers handle that by also mapping Ace at rank 1.
 const rankNum = (value) => VALUES.indexOf(value) + 2;
@@ -39,8 +59,10 @@ function candidateSets(hand) {
       const cards = naturals.slice(0, 3);
       candidates.push(makeMeld(cards, 'set'));
     } else if (naturals.length === 2 && jokers.length >= 1) {
-      const cards = [...naturals, jokers[0]];
-      candidates.push(makeMeld(cards, 'set'));
+      // One candidate per joker, so two joker-using melds can take distinct jokers.
+      for (const joker of jokers) {
+        candidates.push(makeMeld([...naturals, joker], 'set'));
+      }
     }
   }
   return candidates.filter((m) => isValidDupes(m.cards));
@@ -81,16 +103,19 @@ function candidateRuns(hand, lengths) {
         }
         if (naturals < 2 || jokersNeeded > jokerUuids.length) continue;
 
-        // Assign distinct jokers to the gaps.
-        let j = 0;
-        const built = cards.map((c) =>
-          c ? c : {value: 'Joker', suit: 'Joker', uuid: jokerUuids[j++]},
-        );
-        const meld = makeMeld(built, 'sequence');
-        const key = `${suit}:${meld.cardUuids.join(',')}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        if (isValidSequence(meld.cards)) candidates.push(meld);
+        // Emit one candidate per choice of which jokers fill the gaps, so
+        // multiple joker-using melds can each take distinct jokers.
+        for (const combo of combinations(jokerUuids, jokersNeeded)) {
+          let j = 0;
+          const built = cards.map((c) =>
+            c ? c : {value: 'Joker', suit: 'Joker', uuid: combo[j++]},
+          );
+          const meld = makeMeld(built, 'sequence');
+          const key = `${suit}:${meld.cardUuids.join(',')}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          if (isValidSequence(meld.cards)) candidates.push(meld);
+        }
       }
     }
   }
