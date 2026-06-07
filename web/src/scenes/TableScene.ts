@@ -26,7 +26,7 @@ const LAYOUT = {
   pileLabelY: 330,
   rail: { y: 430, left: 40, right: 1110 },
   hand: { y: 636, selectedLift: 28 },
-  buttons: { x: 1170, w: 150, h: 38, ys: [160, 212, 264, 316] },
+  buttons: { x: 1170, w: 150, h: 38, ys: [150, 200, 250, 300, 350] },
 } as const;
 
 type DropTarget = { kind: 'discard' } | { kind: 'meld'; meldIndex: number };
@@ -106,16 +106,20 @@ export class TableScene extends Phaser.Scene {
       .setRectangleDropZone(CARD_W + 24, CARD_H + 24);
     dz.setData('target', { kind: 'discard' } as DropTarget);
 
-    const [a, b, c, d] = LAYOUT.buttons.ys;
-    this.makeButton(a, 'Draw',
+    const [yDraw, ySort, yLay, yDiscard, yEnd] = LAYOUT.buttons.ys;
+    this.makeButton(yDraw, 'Draw',
       (v) => v.validActions.includes(ActionType.DRAW),
       () => this.session.send({ type: ActionType.DRAW }));
-    this.makeButton(b, 'Sort', () => true, () => this.toggleSort());
-    this.makeButton(c, 'Lay Down',
+    this.makeButton(ySort, 'Sort', () => true, () => this.toggleSort());
+    this.makeButton(yLay, 'Lay Down',
       (v) => this.canLayDown(v),
       () => this.layDown(),
       true); // clickable while disabled so it can explain why
-    this.makeButton(d, 'End Turn',
+    this.makeButton(yDiscard, 'Discard',
+      (v) => this.canDiscardSelected(v),
+      () => this.discardSelected(),
+      true); // clickable while disabled so it can explain why
+    this.makeButton(yEnd, 'End Turn',
       (v) => v.validActions.includes(ActionType.END_TURN),
       () => this.session.send({ type: ActionType.END_TURN }));
   }
@@ -199,8 +203,9 @@ export class TableScene extends Phaser.Scene {
         : 'Draw from the stock or take the discard to begin your turn.';
     }
     const sel = this.selected.size;
-    if (sel > 0) return `${sel} card${sel === 1 ? '' : 's'} selected — press Lay Down, or tap to deselect.`;
-    return 'Tap cards to pick your melds, then Lay Down — or drag a card to the discard pile.';
+    if (sel === 1) return '1 selected — press Discard, or select more cards to build a lay-down.';
+    if (sel > 1) return `${sel} selected — press Lay Down, or tap to deselect.`;
+    return 'Tap a card to select it: 1 to Discard, or a full meld to Lay Down.';
   }
 
   private renderOpponents(view: GameView): void {
@@ -370,6 +375,31 @@ export class TableScene extends Phaser.Scene {
     }
 
     this.session.send({ type: ActionType.LAY_DOWN, payload: { melds: result.melds } });
+    this.selected.clear();
+  }
+
+  /** Discard enabled only with exactly one card selected (more = a lay-down). */
+  private canDiscardSelected(view: GameView): boolean {
+    return (
+      view.isYourTurn &&
+      view.validActions.includes(ActionType.DISCARD) &&
+      this.selected.size === 1
+    );
+  }
+
+  private discardSelected(): void {
+    const view = this.session.view;
+    if (!view) return;
+    if (!view.isYourTurn) return this.toast('Wait for your turn.');
+    if (this.selected.size === 0) return this.toast('Select a card to discard.');
+    if (this.selected.size > 1) {
+      return this.toast('Select a single card to discard — multiple cards are for laying down.');
+    }
+    if (!view.validActions.includes(ActionType.DISCARD)) {
+      return this.toast('Draw a card before discarding.');
+    }
+    const cardUuid = [...this.selected][0];
+    this.session.send({ type: ActionType.DISCARD, payload: { cardUuid } });
     this.selected.clear();
   }
 
