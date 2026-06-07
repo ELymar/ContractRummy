@@ -3,14 +3,14 @@
  * alternate during local development / Playwright tests.
  *
  * It speaks the same WebSocket protocol as the web client: it waits for its
- * turn (view.isYourTurn) and plays the simplest legal sequence — draw (if
- * allowed), discard a card, end turn — driven entirely by view.validActions.
- * It holds no rules; the authoritative server validates everything.
+ * turn (view.isYourTurn) and asks the shared AI brain (decideAction) for one
+ * action at a time. It holds no rules; the authoritative server validates.
  *
  *   node server/scripts/dev-bot.js            # connects to ws://localhost:8080
  *   WS_URL=ws://host:port node .../dev-bot.js
  */
 const WebSocket = require('ws');
+const {decideAction} = require('../src/ai/decideAction');
 
 const url = process.env.WS_URL || 'ws://localhost:8080';
 const label = process.env.BOT_NAME || 'bot';
@@ -54,26 +54,19 @@ ws.on('message', (raw) => {
 });
 
 function play(view) {
-  const can = (a) => view.validActions && view.validActions.includes(a);
+  const command = decideAction(view);
+  if (!command) return;
+  console.log(`[${label}] ${command.type}${describe(command)}`);
+  send(command);
+}
 
-  // 1) Draw from the deck if we haven't taken a card yet.
-  if (!view.tookCard && can('DRAW')) {
-    console.log(`[${label}] DRAW`);
-    return send({ type: 'DRAW' });
+function describe(command) {
+  if (command.type === 'LAY_DOWN') {
+    return ` (${command.payload.melds.map((m) => `${m.type}:${m.cardUuids.length}`).join(', ')})`;
   }
-
-  // 2) Discard a card (the last one in hand) to satisfy the discard phase.
-  if (!view.discarded && can('DISCARD') && view.yourHand.length > 0) {
-    const card = view.yourHand[view.yourHand.length - 1];
-    console.log(`[${label}] DISCARD ${card.value} of ${card.suit}`);
-    return send({ type: 'DISCARD', payload: { cardUuid: card.uuid } });
-  }
-
-  // 3) End the turn.
-  if (can('END_TURN')) {
-    console.log(`[${label}] END_TURN`);
-    return send({ type: 'END_TURN' });
-  }
+  if (command.type === 'ADD_TO_MELD') return ` -> meld ${command.payload.meldIndex}`;
+  if (command.type === 'DISCARD') return ` ${command.payload.cardUuid.slice(0, 6)}`;
+  return '';
 }
 
 ws.on('close', () => console.log(`[${label}] disconnected`));
