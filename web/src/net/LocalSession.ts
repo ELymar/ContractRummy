@@ -41,12 +41,33 @@ export class LocalSession implements Session {
 
   connect(): void {
     this.deck = buildDeck();
-    const yourHand = this.deck.splice(0, 11);
+    // Rigged for offline UI testing: a hand that already contains round 1's
+    // contract (3 Kings + 3 Queens) so Lay Down can be exercised, plus filler.
+    const pull = (pred: (c: CardDTO) => boolean, n: number): CardDTO[] => {
+      const out: CardDTO[] = [];
+      for (let i = this.deck.length - 1; i >= 0 && out.length < n; i--) {
+        if (pred(this.deck[i])) out.push(this.deck.splice(i, 1)[0]);
+      }
+      return out;
+    };
+    const yourHand = [
+      ...pull((c) => c.value === 'King', 3),
+      ...pull((c) => c.value === 'Queen', 3),
+      ...this.deck.splice(0, 5),
+    ];
     const burnTop = this.deck.splice(0, 1)[0] ?? null;
 
     this.view = {
       gameId: 'local',
       playerId: this.playerId,
+      you: { id: 'you', name: 'You' },
+      contract: {
+        description: 'Round 1: 2 sets of 3 cards each',
+        requirements: [
+          { type: 'set', minCards: 3 },
+          { type: 'set', minCards: 3 },
+        ],
+      },
       players: [
         { id: 'you', name: 'You', handCount: yourHand.length, isDown: false },
         { id: 'p2', name: 'Robin', handCount: 11, isDown: false },
@@ -55,11 +76,7 @@ export class LocalSession implements Session {
       yourHand,
       burnTop,
       burnPileAvailable: burnTop != null,
-      // Two empty meld zones to drag into.
-      downPiles: [
-        { type: 'meld', owner: 'You', cards: [] },
-        { type: 'meld', owner: 'You', cards: [] },
-      ],
+      downPiles: [], // melds appear here after laying down
       currentPlayerIndex: 0,
       dealerIndex: 0,
       round: 1,
@@ -111,6 +128,27 @@ export class LocalSession implements Session {
           v.burnTop = card;
           v.burnPileAvailable = true;
           v.discarded = true;
+        }
+        break;
+      }
+      case ActionType.LAY_DOWN: {
+        // Server shape: payload.melds = [{ cardUuids, type }]
+        const melds = command.payload?.melds as
+          | { cardUuids: string[]; type: 'set' | 'sequence' }[]
+          | undefined;
+        if (Array.isArray(melds)) {
+          for (const m of melds) {
+            const cards = m.cardUuids
+              .map((u) => v.yourHand.find((c) => c.uuid === u))
+              .filter((c): c is CardDTO => !!c);
+            m.cardUuids.forEach((u) => this.removeFromHand(v, u));
+            v.downPiles.push({
+              type: m.type === 'set' ? 'dupes' : 'sequence',
+              owner: 'You',
+              cards,
+            });
+          }
+          v.youAreDown = true;
         }
         break;
       }

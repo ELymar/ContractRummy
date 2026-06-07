@@ -18,7 +18,8 @@ export type ActionType = (typeof ActionType)[keyof typeof ActionType];
 export type Suit = 'Hearts' | 'Spades' | 'Clubs' | 'Diamonds' | 'Joker';
 export type Value =
   | 'Two' | 'Three' | 'Four' | 'Five' | 'Six' | 'Seven' | 'Eight'
-  | 'Nine' | 'Ten' | 'Jack' | 'Queen' | 'King' | 'Ace';
+  | 'Nine' | 'Ten' | 'Jack' | 'Queen' | 'King' | 'Ace'
+  | 'Joker';
 
 // A card as serialized over the wire (Card.js -> JSON drops its methods).
 export interface CardDTO {
@@ -35,15 +36,29 @@ export interface PlayerView {
 }
 
 export interface DownPileView {
-  type: string;
+  type: string; // 'dupes' (set) or 'sequence' (run)
   owner: string;
   cards: CardDTO[];
+}
+
+export type MeldType = 'set' | 'sequence';
+
+export interface Requirement {
+  type: MeldType;
+  minCards: number;
+}
+
+export interface Contract {
+  description: string;
+  requirements: Requirement[];
 }
 
 // Shape returned by GameEngine.getViewFor(playerId).
 export interface GameView {
   gameId: string;
   players: PlayerView[];
+  you: { id: string | number; name: string } | null;
+  contract: Contract | null;
   yourHand: CardDTO[];
   burnTop: CardDTO | null;
   burnPileAvailable: boolean;

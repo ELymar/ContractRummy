@@ -4,6 +4,7 @@ const GameState = require('../domain/GameState');
 const Hand = require('../domain/Hand');
 const RoundDealing = require('../rules/RoundDealing');
 const CardScoring = require('../rules/CardScoring');
+const {getContractForRound} = require('../rules/RoundContract');
 const {v4: uuid} = require('uuid');
 
 // Action Handlers
@@ -69,9 +70,19 @@ class GameEngine {
     const you = (s.players || []).find((p) => p.id === playerId) || null;
     const isYourTurn = s.players[s.currentPlayerIndex]?.id === playerId;
 
+    let contract = null;
+    try {
+      const c = getContractForRound(s.currentRound ?? 1);
+      contract = {description: c.description, requirements: c.requirements};
+    } catch {
+      contract = null;
+    }
+
     return {
       gameId: this.gameId,
       players,
+      you: you ? {id: you.id, name: you.name} : null,
+      contract,
       yourHand: you?.hand?.cards ?? [],
       burnTop: s.burnPile?.topCard?.() ?? null,
       burnPileAvailable: s.burnPile?.cards?.length > 0 && !s.burnPile?.dead,

@@ -20,4 +20,7 @@ export interface Session {
 
   /** Subscribe to view updates. Returns an unsubscribe fn. */
   onView(fn: (view: GameView) => void): () => void;
+
+  /** Subscribe to rejected-action / error messages (optional; server only). */
+  onError?(fn: (message: string) => void): () => void;
 }

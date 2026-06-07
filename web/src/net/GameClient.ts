@@ -24,6 +24,7 @@ export class GameClient {
   private viewListeners = new Set<ViewListener>();
   private eventsListeners = new Set<EventsListener>();
   private statusListeners = new Set<StatusListener>();
+  private errorListeners = new Set<(message: string) => void>();
 
   constructor(url: string) {
     this.url = url;
@@ -56,6 +57,13 @@ export class GameClient {
         break;
       case 'events':
         this.view = msg.snapshot?.view ?? this.view;
+        // Surface rejected-action ERROR events (e.g. an illegal lay-down).
+        for (const ev of msg.events ?? []) {
+          if (ev.type === 'ERROR') {
+            const m = (ev.payload?.message as string) ?? 'Action rejected';
+            this.errorListeners.forEach((fn) => fn(m));
+          }
+        }
         this.eventsListeners.forEach((fn) => fn(msg.events ?? []));
         if (this.view) {
           const v = this.view;
@@ -63,7 +71,7 @@ export class GameClient {
         }
         break;
       case 'error':
-        console.warn('[GameClient] server error:', msg.message);
+        this.errorListeners.forEach((fn) => fn(msg.message ?? 'Server error'));
         break;
     }
   }
@@ -91,6 +99,11 @@ export class GameClient {
   onStatus(fn: StatusListener): () => void {
     this.statusListeners.add(fn);
     return () => this.statusListeners.delete(fn);
+  }
+
+  onError(fn: (message: string) => void): () => void {
+    this.errorListeners.add(fn);
+    return () => this.errorListeners.delete(fn);
   }
 
   private setStatus(status: ConnectionStatus): void {

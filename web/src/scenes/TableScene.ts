@@ -3,68 +3,57 @@ import type { Session } from '../net/Session';
 import { ActionType } from '../net/protocol';
 import type { CardDTO, GameView } from '../net/protocol';
 import { CARD_BACK_KEY, cardKey } from '../render/cardArt';
+import { findContract } from '../rules/meld';
 
 const W = 1280;
 const CARD_W = 96;
 const CARD_H = 134;
 const FELT = 0x14532d;
+const MELD_CARD_SCALE = 0.62;
 
-// Spacing between cards laid in a meld. During a drag-to-insert the meld opens a
-// one-slot gap of this width to show where the card will land.
-const MELD_STEP = 40;
-const MELD_CARD_SCALE = 0.82;
-
-// Ordering for the client-side hand sort (by suit, then rank low→high).
 const SUIT_ORDER = ['Hearts', 'Spades', 'Clubs', 'Diamonds', 'Joker'];
 const VALUE_ORDER = [
   'Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
   'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King',
 ];
 
-// One place that owns the screen layout. The table reads down in clean bands:
-//   status → opponents → stock/discard → melds → hand,  with the action
-// buttons parked in a column on the right so they never collide with play.
 const LAYOUT = {
-  status: { x: 20, y: 18 },
-  opponents: { nameY: 58, cardsY: 118, scale: 0.5, xs: [430, 850] },
-  stock: { x: 580, y: 250 },
+  status: { x: 20, y: 14 },
+  contract: { x: 20, y: 40 },
+  opponents: { nameY: 70, cardsY: 122, scale: 0.5, xs: [430, 850] },
+  stock: { x: 560, y: 250 },
   discard: { x: 700, y: 250 },
   pileLabelY: 330,
-  melds: { y: 470, w: 340, h: 156, centers: [430, 850] },
-  hand: { y: 636 },
-  buttons: { x: 1170, w: 150, h: 40, ys: [180, 240, 300] },
+  rail: { y: 430, left: 40, right: 1110 },
+  hand: { y: 636, selectedLift: 28 },
+  buttons: { x: 1170, w: 150, h: 38, ys: [160, 212, 264, 316] },
 } as const;
 
-interface DropTarget {
-  kind: 'discard' | 'meld';
-  index?: number;
+type DropTarget = { kind: 'discard' } | { kind: 'meld'; meldIndex: number };
+
+interface ButtonRef {
+  bg: Phaser.GameObjects.Rectangle;
+  label: Phaser.GameObjects.Text;
+  enabled: (v: GameView) => boolean;
+  onClick: () => void;
 }
 
 /**
- * Renders a GameView and turns drag/drop gestures into Commands. It holds no
- * game rules — it draws whatever view the Session hands it and emits intents
- * back. Works identically against LocalSession (mock) and GameClient (server).
+ * Renders a GameView and turns gestures into Commands. Holds no game rules —
+ * the server validates everything; the client-side meld check only drives the
+ * Lay Down button's enabled state. Works against LocalSession and GameClient.
  */
 export class TableScene extends Phaser.Scene {
   private session!: Session;
   private dynamic!: Phaser.GameObjects.Container;
   private statusText!: Phaser.GameObjects.Text;
+  private contractText!: Phaser.GameObjects.Text;
+  private toastText!: Phaser.GameObjects.Text;
 
-  // Set on 'drop', consumed on 'dragend' so we never mutate/destroy the dragged
-  // sprite mid-handler (drop fires before dragend).
-  private pendingDrop: { target: DropTarget; card: CardDTO; insertIndex: number } | null = null;
-
-  // Live references to the card sprites in each meld, so a drag can animate them
-  // apart to preview an insertion point. Rebuilt on every render().
-  private meldSprites: Phaser.GameObjects.Image[][] = [];
-  // The meld currently showing an opened gap (so we can restore it on leave).
-  private hover: { pileIndex: number; gapIndex: number } | null = null;
-  // The card currently being dragged, plus how it's scaled, so we can shrink it
-  // to meld size while hovering a meld and lift it again on the way out.
-  private draggingObj: Phaser.GameObjects.Image | null = null;
-  private dragScaleState: 'lift' | 'meld' = 'lift';
-  // Presentational hand sort toggle (no server SORT action exists).
-  private sortHand = false;
+  private selected = new Set<string>(); // hand card uuids chosen for lay-down
+  private buttons: ButtonRef[] = [];
+  private meldZones: Phaser.GameObjects.Zone[] = [];
+  private pendingDrop: { target: DropTarget; card: CardDTO } | null = null;
 
   constructor() {
     super('Table');
@@ -73,277 +62,260 @@ export class TableScene extends Phaser.Scene {
   create(): void {
     this.session = this.registry.get('session') as Session;
     this.cameras.main.setBackgroundColor(FELT);
+    this.input.dragDistanceThreshold = 8; // so a small click selects instead of dragging
 
-    this.buildStaticFurniture();
     this.dynamic = this.add.container(0, 0).setDepth(10);
+    this.buildStaticFurniture();
 
-    this.statusText = this.add
-      .text(LAYOUT.status.x, LAYOUT.status.y, '', { color: '#dcfce7', fontSize: '18px' })
-      .setDepth(50);
+    this.statusText = this.add.text(LAYOUT.status.x, LAYOUT.status.y, '', {
+      color: '#dcfce7', fontSize: '18px',
+    }).setDepth(50);
+    this.contractText = this.add.text(LAYOUT.contract.x, LAYOUT.contract.y, '', {
+      color: '#fde68a', fontSize: '15px',
+    }).setDepth(50);
+    this.toastText = this.add.text(640, 180, '', {
+      color: '#fecaca', fontSize: '20px', backgroundColor: '#7f1d1d', padding: { x: 12, y: 6 },
+    }).setOrigin(0.5).setDepth(60).setAlpha(0);
 
     this.setupDragHandlers();
 
     this.session.onView((view) => this.render(view));
+    this.session.onError?.((msg) => this.toast(msg));
     this.session.connect();
     if (this.session.view) this.render(this.session.view);
   }
 
-  // ---- static furniture: pile outlines, meld zones, buttons (created once) --
+  // ---- static furniture ----------------------------------------------------
 
   private buildStaticFurniture(): void {
     const g = this.add.graphics().setDepth(1);
-
-    // Stock + discard slot outlines (so empty piles still read as slots).
-    this.outlineSlot(g, LAYOUT.stock.x, LAYOUT.stock.y, CARD_W, CARD_H);
-    this.outlineSlot(g, LAYOUT.discard.x, LAYOUT.discard.y, CARD_W, CARD_H);
+    this.outlineSlot(g, LAYOUT.stock.x, LAYOUT.stock.y);
+    this.outlineSlot(g, LAYOUT.discard.x, LAYOUT.discard.y);
     this.slotCaption(LAYOUT.stock.x, LAYOUT.pileLabelY, 'STOCK');
     this.slotCaption(LAYOUT.discard.x, LAYOUT.pileLabelY, 'DISCARD');
 
-    // Meld drop zones: filled, rounded, captioned, with a real Phaser drop zone.
-    LAYOUT.melds.centers.forEach((cx, i) => {
-      const { y, w, h } = LAYOUT.melds;
-      g.fillStyle(0xffffff, 0.05);
-      g.fillRoundedRect(cx - w / 2, y - h / 2, w, h, 12);
-      g.lineStyle(2, 0xffffff, 0.22);
-      g.strokeRoundedRect(cx - w / 2, y - h / 2, w, h, 12);
-      this.add
-        .text(cx - w / 2 + 12, y - h / 2 + 10, `MELD ${i + 1}`, {
-          color: '#ffffff', fontSize: '12px', fontStyle: 'bold',
-        })
-        .setAlpha(0.45)
-        .setDepth(2);
-
-      const zone = this.add.zone(cx, y, w, h).setRectangleDropZone(w, h);
-      zone.setData('target', { kind: 'meld', index: i } as DropTarget);
-    });
-
-    // Discard is also a drop target (to discard a card).
+    // Discard drop zone (static).
     const dz = this.add
       .zone(LAYOUT.discard.x, LAYOUT.discard.y, CARD_W + 24, CARD_H + 24)
       .setRectangleDropZone(CARD_W + 24, CARD_H + 24);
     dz.setData('target', { kind: 'discard' } as DropTarget);
 
-    // Action buttons, parked in a right-hand column clear of all play areas.
-    this.makeButton(LAYOUT.buttons.ys[0], 'Draw', () => this.session.send({ type: ActionType.DRAW }));
-    // Sort is purely presentational (the server has no SORT action). Toggling it
-    // reorders the displayed hand; discards are by card uuid, so this is safe.
-    this.makeButton(LAYOUT.buttons.ys[1], 'Sort', () => {
-      this.sortHand = !this.sortHand;
-      if (this.session.view) this.render(this.session.view);
-    });
-    this.makeButton(LAYOUT.buttons.ys[2], 'End Turn', () =>
-      this.session.send({ type: ActionType.END_TURN }),
-    );
+    const [a, b, c, d] = LAYOUT.buttons.ys;
+    this.makeButton(a, 'Draw',
+      (v) => v.validActions.includes(ActionType.DRAW),
+      () => this.session.send({ type: ActionType.DRAW }));
+    this.makeButton(b, 'Sort', () => true, () => this.toggleSort());
+    this.makeButton(c, 'Lay Down',
+      (v) => this.canLayDown(v),
+      () => this.layDown());
+    this.makeButton(d, 'End Turn',
+      (v) => v.validActions.includes(ActionType.END_TURN),
+      () => this.session.send({ type: ActionType.END_TURN }));
   }
 
-  private outlineSlot(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number): void {
+  private outlineSlot(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
     g.lineStyle(2, 0xffffff, 0.18);
-    g.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 8);
+    g.strokeRoundedRect(x - CARD_W / 2, y - CARD_H / 2, CARD_W, CARD_H, 8);
   }
 
   private slotCaption(x: number, y: number, label: string): void {
-    this.add
-      .text(x, y, label, { color: '#ffffff', fontSize: '12px', fontStyle: 'bold' })
-      .setOrigin(0.5)
-      .setAlpha(0.5)
-      .setDepth(2);
+    this.add.text(x, y, label, { color: '#ffffff', fontSize: '12px', fontStyle: 'bold' })
+      .setOrigin(0.5).setAlpha(0.5).setDepth(2);
   }
 
-  private makeButton(y: number, label: string, onClick: () => void): void {
+  private makeButton(y: number, label: string, enabled: ButtonRef['enabled'], onClick: () => void): void {
     const { x, w, h } = LAYOUT.buttons;
-    const bg = this.add
-      .rectangle(x, y, w, h, 0x166534)
-      .setStrokeStyle(2, 0x86efac)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(40);
-    this.add.text(x, y, label, { color: '#ffffff', fontSize: '16px' }).setOrigin(0.5).setDepth(41);
-    bg.on('pointerover', () => bg.setFillStyle(0x15803d));
-    bg.on('pointerout', () => bg.setFillStyle(0x166534));
-    bg.on('pointerup', onClick);
+    const bg = this.add.rectangle(x, y, w, h, 0x166534).setStrokeStyle(2, 0x86efac)
+      .setInteractive({ useHandCursor: true }).setDepth(40);
+    const text = this.add.text(x, y, label, { color: '#ffffff', fontSize: '15px' })
+      .setOrigin(0.5).setDepth(41);
+    const ref: ButtonRef = { bg, label: text, enabled, onClick };
+    bg.on('pointerup', () => {
+      const v = this.session.view;
+      if (v && ref.enabled(v)) ref.onClick();
+    });
+    this.buttons.push(ref);
   }
+
+  private refreshButtons(view: GameView): void {
+    for (const b of this.buttons) {
+      const on = b.enabled(view);
+      b.bg.setFillStyle(on ? 0x166534 : 0x0f3322);
+      b.bg.setStrokeStyle(2, on ? 0x86efac : 0x3f6b50);
+      b.label.setAlpha(on ? 1 : 0.4);
+    }
+  }
+
+  private toggleSort(): void {
+    this.sortHand = !this.sortHand;
+    if (this.session.view) this.render(this.session.view);
+  }
+  private sortHand = false;
 
   // ---- per-view rendering --------------------------------------------------
 
   private render(view: GameView): void {
     this.dynamic.removeAll(true);
-    this.hover = null;
-    this.meldSprites = [];
+    this.meldZones.forEach((z) => z.destroy());
+    this.meldZones = [];
+    // Drop stale selections (cards no longer in hand).
+    const handUuids = new Set(view.yourHand.map((c) => c.uuid));
+    this.selected.forEach((u) => { if (!handUuids.has(u)) this.selected.delete(u); });
 
     this.renderOpponents(view);
     this.renderStock(view);
     this.renderDiscard(view);
-    this.renderMelds(view);
+    this.renderMeldsRail(view);
     this.renderHand(view);
 
     const turn = view.isYourTurn ? 'Your turn' : 'Waiting…';
     this.statusText.setText(`Round ${view.round}    Stock ${view.deckCount}    ${turn}`);
-  }
-
-  private add2dynamic(obj: Phaser.GameObjects.GameObject): void {
-    this.dynamic.add(obj);
+    const down = view.youAreDown ? "   ✓ you're down" : '';
+    this.contractText.setText(view.contract ? `Contract: ${view.contract.description}${down}` : '');
+    this.refreshButtons(view);
   }
 
   private renderOpponents(view: GameView): void {
-    const opponents = view.players.filter((p) => p.id !== this.session.playerId);
+    const meId = view.you?.id ?? this.session.playerId;
+    const opponents = view.players.filter((p) => p.id !== meId);
     opponents.forEach((p, i) => {
       const cx = LAYOUT.opponents.xs[i] ?? 430 + i * 420;
-      this.add2dynamic(
-        this.add
-          .text(cx, LAYOUT.opponents.nameY, `${p.name}  ·  ${p.handCount}`, {
-            color: '#ffffff', fontSize: '17px',
-          })
-          .setOrigin(0.5),
-      );
-
+      this.dynamic.add(this.add.text(cx, LAYOUT.opponents.nameY,
+        `${p.name}  ·  ${p.handCount}${p.isDown ? '  (down)' : ''}`,
+        { color: '#ffffff', fontSize: '16px' }).setOrigin(0.5));
       const fan = Math.min(p.handCount, 11);
       const step = 20;
-      const w0 = (fan - 1) * step;
       for (let c = 0; c < fan; c++) {
-        const img = this.add.image(cx - w0 / 2 + c * step, LAYOUT.opponents.cardsY, CARD_BACK_KEY);
+        const img = this.add.image(cx - ((fan - 1) * step) / 2 + c * step, LAYOUT.opponents.cardsY, CARD_BACK_KEY);
         img.setDisplaySize(CARD_W * LAYOUT.opponents.scale, CARD_H * LAYOUT.opponents.scale);
-        this.add2dynamic(img);
+        this.dynamic.add(img);
       }
     });
   }
 
   private renderStock(view: GameView): void {
-    if (view.deckCount > 0) {
-      const img = this.add.image(LAYOUT.stock.x, LAYOUT.stock.y, CARD_BACK_KEY);
-      img.setDisplaySize(CARD_W, CARD_H);
-      img.setInteractive({ useHandCursor: true });
-      img.on('pointerup', () => this.session.send({ type: ActionType.DRAW }));
-      this.add2dynamic(img);
-    }
+    if (view.deckCount <= 0) return;
+    const img = this.add.image(LAYOUT.stock.x, LAYOUT.stock.y, CARD_BACK_KEY);
+    img.setDisplaySize(CARD_W, CARD_H).setInteractive({ useHandCursor: true });
+    img.on('pointerup', () => this.session.send({ type: ActionType.DRAW }));
+    this.dynamic.add(img);
   }
 
   private renderDiscard(view: GameView): void {
     if (!view.burnTop) return;
     const img = this.add.image(LAYOUT.discard.x, LAYOUT.discard.y, cardKey(view.burnTop));
-    img.setDisplaySize(CARD_W, CARD_H);
-    img.setInteractive({ useHandCursor: true });
+    img.setDisplaySize(CARD_W, CARD_H).setInteractive({ useHandCursor: true });
     img.on('pointerup', () => this.session.send({ type: ActionType.TAKE_FROM_DISCARD }));
-    this.add2dynamic(img);
+    this.dynamic.add(img);
   }
 
-  private renderMelds(view: GameView): void {
-    view.downPiles.slice(0, LAYOUT.melds.centers.length).forEach((pile, i) => {
-      this.meldSprites[i] = [];
-      pile.cards.forEach((card) => {
-        const img = this.add.image(0, LAYOUT.melds.y, cardKey(card));
-        img.setDisplaySize(CARD_W * MELD_CARD_SCALE, CARD_H * MELD_CARD_SCALE);
-        this.add2dynamic(img);
-        this.meldSprites[i].push(img);
-      });
-      this.layoutMeld(i, null, false); // place at resting positions (no tween)
-    });
-  }
-
-  /**
-   * Position a meld's cards. With gapIndex null they sit at their resting
-   * layout; with a gapIndex set, the cards spread into (n+1) slots leaving that
-   * slot empty — the live preview of where a dragged card will be inserted.
-   */
-  private layoutMeld(pileIndex: number, gapIndex: number | null, animate = true): void {
-    const sprites = this.meldSprites[pileIndex] ?? [];
-    const cx = LAYOUT.melds.centers[pileIndex];
-    const slots = gapIndex == null ? sprites.length : sprites.length + 1;
-    const startX = cx - ((slots - 1) * MELD_STEP) / 2;
-
-    sprites.forEach((img, j) => {
-      const slot = gapIndex == null || j < gapIndex ? j : j + 1;
-      const x = startX + slot * MELD_STEP;
-      if (animate) {
-        this.tweens.add({ targets: img, x, duration: 120, ease: 'Quad.out' });
-      } else {
-        img.x = x;
-      }
-    });
-  }
-
-  /** Which meld zone (if any) contains a game-space point. */
-  private meldZoneAt(x: number, y: number): number | null {
-    const { w, h, y: cy, centers } = LAYOUT.melds;
-    for (let i = 0; i < centers.length; i++) {
-      if (Math.abs(x - centers[i]) <= w / 2 && Math.abs(y - cy) <= h / 2) return i;
-    }
-    return null;
-  }
-
-  /** Insertion index within a meld for a given x (0..n). */
-  private gapIndexFor(pileIndex: number, x: number): number {
-    const n = this.meldSprites[pileIndex]?.length ?? 0;
-    const cx = LAYOUT.melds.centers[pileIndex];
-    const startX = cx - (n * MELD_STEP) / 2; // (n+1) slots
-    return Phaser.Math.Clamp(Math.round((x - startX) / MELD_STEP), 0, n);
-  }
-
-  /** Update the meld gap preview as a card is dragged around. */
-  private updateMeldPreview(x: number, y: number): void {
-    const pileIndex = this.meldZoneAt(x, y);
-
-    // Shrink the dragged card to meld size over a meld, lift it again outside —
-    // so the previewed gap matches the card that will fill it.
-    const desired = pileIndex == null ? 'lift' : 'meld';
-    if (this.draggingObj && desired !== this.dragScaleState) {
-      const base = this.draggingObj.getData('base') as number;
-      const target = base * (desired === 'meld' ? MELD_CARD_SCALE : 1.08);
-      this.tweens.add({
-        targets: this.draggingObj,
-        scaleX: target,
-        scaleY: target,
-        duration: 120,
-        ease: 'Quad.out',
-      });
-      this.dragScaleState = desired;
-    }
-
-    if (pileIndex == null) {
-      if (this.hover) {
-        this.layoutMeld(this.hover.pileIndex, null);
-        this.hover = null;
-      }
+  /** Render every meld on the table (all owners) as a labeled, drop-targetable group. */
+  private renderMeldsRail(view: GameView): void {
+    const melds = view.downPiles;
+    if (melds.length === 0) {
+      this.dynamic.add(this.add.text(LAYOUT.rail.left, LAYOUT.rail.y, 'No melds on the table yet',
+        { color: '#ffffff', fontSize: '13px' }).setOrigin(0, 0.5).setAlpha(0.4));
       return;
     }
 
-    const gapIndex = this.gapIndexFor(pileIndex, x);
-    if (this.hover && this.hover.pileIndex === pileIndex && this.hover.gapIndex === gapIndex) {
-      return; // nothing changed
-    }
-    if (this.hover && this.hover.pileIndex !== pileIndex) {
-      this.layoutMeld(this.hover.pileIndex, null); // left the previous meld
-    }
-    this.hover = { pileIndex, gapIndex };
-    this.layoutMeld(pileIndex, gapIndex);
-  }
+    const cw = CARD_W * MELD_CARD_SCALE;
+    const step = cw * 0.55;
+    const gap = 30;
+    const widths = melds.map((m) => (Math.max(m.cards.length, 1) - 1) * step + cw);
+    let total = widths.reduce((s, w) => s + w, 0) + gap * (melds.length - 1);
 
-  private sortedHand(cards: CardDTO[]): CardDTO[] {
-    return [...cards].sort(
-      (a, b) =>
-        SUIT_ORDER.indexOf(a.suit) - SUIT_ORDER.indexOf(b.suit) ||
-        VALUE_ORDER.indexOf(a.value) - VALUE_ORDER.indexOf(b.value),
-    );
+    const available = LAYOUT.rail.right - LAYOUT.rail.left;
+    const scale = total > available ? available / total : 1;
+    const sCw = cw * scale, sStep = step * scale, sGap = gap * scale;
+    total *= scale;
+
+    const meName = view.you?.name;
+    let x = (LAYOUT.rail.left + LAYOUT.rail.right) / 2 - total / 2;
+
+    melds.forEach((pile, meldIndex) => {
+      const gw = (Math.max(pile.cards.length, 1) - 1) * sStep + sCw;
+      const cx = x + gw / 2;
+
+      const ownerLabel = pile.owner === meName ? 'You' : pile.owner;
+      this.dynamic.add(this.add.text(cx, LAYOUT.rail.y - CARD_H * MELD_CARD_SCALE * scale / 2 - 12,
+        ownerLabel, { color: '#a7f3d0', fontSize: '12px' }).setOrigin(0.5));
+
+      pile.cards.forEach((card, c) => {
+        const img = this.add.image(x + sCw / 2 + c * sStep, LAYOUT.rail.y, cardKey(card));
+        img.setDisplaySize(sCw, CARD_H * MELD_CARD_SCALE * scale);
+        this.dynamic.add(img);
+      });
+
+      // Drop zone over the whole group for lay-off (ADD_TO_MELD).
+      const zone = this.add.zone(cx, LAYOUT.rail.y, gw + 12, CARD_H * MELD_CARD_SCALE * scale + 16)
+        .setRectangleDropZone(gw + 12, CARD_H * MELD_CARD_SCALE * scale + 16);
+      zone.setData('target', { kind: 'meld', meldIndex } as DropTarget);
+      this.meldZones.push(zone);
+
+      x += gw + sGap;
+    });
   }
 
   private renderHand(view: GameView): void {
     const hand = this.sortHand ? this.sortedHand(view.yourHand) : view.yourHand;
     const n = hand.length;
-    // Centered on the table; the button column sits in a higher band so the
-    // hand is free to use the full width. Cards overlap as the hand grows.
-    const maxWidth = W - 60;
-    const spacing = Math.min(CARD_W + 12, maxWidth / Math.max(n, 1));
-    const totalW = (n - 1) * spacing;
-    const startX = W / 2 - totalW / 2;
+    const spacing = Math.min(CARD_W + 12, (W - 60) / Math.max(n, 1));
+    const startX = W / 2 - ((n - 1) * spacing) / 2;
 
     hand.forEach((card, i) => {
+      const isSel = this.selected.has(card.uuid);
       const x = startX + i * spacing;
-      const img = this.add.image(x, LAYOUT.hand.y, cardKey(card));
+      const y = LAYOUT.hand.y - (isSel ? LAYOUT.hand.selectedLift : 0);
+      const img = this.add.image(x, y, cardKey(card));
       img.setDisplaySize(CARD_W, CARD_H);
+      if (isSel) img.setTint(0xffe066);
       img.setInteractive({ useHandCursor: true, draggable: true });
       img.setData('card', card);
-      img.setData('home', { x, y: LAYOUT.hand.y });
+      img.setData('home', { x, y });
       this.input.setDraggable(img);
-      this.add2dynamic(img);
+      img.on('pointerup', (p: Phaser.Input.Pointer) => {
+        if (p.getDistance() < 8) this.toggleSelect(card); // a click, not a drag
+      });
+      this.dynamic.add(img);
     });
+  }
+
+  private sortedHand(cards: CardDTO[]): CardDTO[] {
+    return [...cards].sort((a, b) =>
+      SUIT_ORDER.indexOf(a.suit) - SUIT_ORDER.indexOf(b.suit) ||
+      VALUE_ORDER.indexOf(a.value) - VALUE_ORDER.indexOf(b.value));
+  }
+
+  // ---- lay down ------------------------------------------------------------
+
+  private toggleSelect(card: CardDTO): void {
+    if (this.selected.has(card.uuid)) this.selected.delete(card.uuid);
+    else this.selected.add(card.uuid);
+    if (this.session.view) this.render(this.session.view);
+  }
+
+  private layDownSource(view: GameView): CardDTO[] {
+    return this.selected.size > 0
+      ? view.yourHand.filter((c) => this.selected.has(c.uuid))
+      : view.yourHand;
+  }
+
+  private canLayDown(view: GameView): boolean {
+    if (!view.isYourTurn || view.youAreDown || !view.contract) return false;
+    if (!view.validActions.includes(ActionType.LAY_DOWN)) return false;
+    return findContract(this.layDownSource(view), view.contract) != null;
+  }
+
+  private layDown(): void {
+    const view = this.session.view;
+    if (!view || !view.contract) return;
+    const result = findContract(this.layDownSource(view), view.contract);
+    if (!result) {
+      this.toast('Selected cards do not form the contract');
+      return;
+    }
+    this.session.send({ type: ActionType.LAY_DOWN, payload: { melds: result.melds } });
+    this.selected.clear();
   }
 
   // ---- drag/drop -----------------------------------------------------------
@@ -351,72 +323,45 @@ export class TableScene extends Phaser.Scene {
   private setupDragHandlers(): void {
     this.input.on('dragstart', (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image) => {
       this.dynamic.bringToTop(obj);
-      this.draggingObj = obj;
-      this.dragScaleState = 'lift';
-      const base = obj.scaleX; // resting hand-card scale (from setDisplaySize)
-      obj.setData('base', base);
-      obj.setScale(base * 1.08);
+      obj.setData('base', obj.scaleX);
+      obj.setScale(obj.scaleX * 1.06);
     });
-
-    this.input.on(
-      'drag',
-      (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image, dx: number, dy: number) => {
-        obj.setPosition(dx, dy);
-        this.updateMeldPreview(dx, dy); // open/close the insertion gap live
-      },
-    );
-
-    this.input.on(
-      'drop',
-      (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image, zone: Phaser.GameObjects.Zone) => {
-        const target = zone.getData('target') as DropTarget | undefined;
-        const card = obj.getData('card') as CardDTO | undefined;
-        if (!target || !card) return;
-        const insertIndex =
-          target.kind === 'meld' ? this.gapIndexFor(target.index ?? 0, obj.x) : 0;
-        this.pendingDrop = { target, card, insertIndex };
-      },
-    );
-
+    this.input.on('drag', (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image, dx: number, dy: number) => {
+      obj.setPosition(dx, dy);
+    });
+    this.input.on('drop', (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image, zone: Phaser.GameObjects.Zone) => {
+      const target = zone.getData('target') as DropTarget | undefined;
+      const card = obj.getData('card') as CardDTO | undefined;
+      if (target && card) this.pendingDrop = { target, card };
+    });
     this.input.on('dragend', (_p: Phaser.Input.Pointer, obj: Phaser.GameObjects.Image) => {
       const drop = this.pendingDrop;
       this.pendingDrop = null;
-
-      this.draggingObj = null;
-
       if (drop) {
         if (drop.target.kind === 'discard') {
           this.session.send({ type: ActionType.DISCARD, payload: { cardUuid: drop.card.uuid } });
         } else {
           this.session.send({
             type: ActionType.ADD_TO_MELD,
-            payload: {
-              cardUuid: drop.card.uuid,
-              meldIndex: drop.target.index ?? 0,
-              position: drop.insertIndex,
-            },
+            payload: { cardUuid: drop.card.uuid, meldIndex: drop.target.meldIndex },
           });
         }
-        // send() triggers a view update -> full re-render, so `obj` is replaced.
-        return;
-      }
-
-      // No valid drop: close any open meld gap, then snap the card back.
-      if (this.hover) {
-        this.layoutMeld(this.hover.pileIndex, null);
-        this.hover = null;
+        return; // re-render replaces obj
       }
       const home = obj.getData('home') as { x: number; y: number } | undefined;
       const base = (obj.getData('base') as number) ?? obj.scaleX;
       this.tweens.add({
-        targets: obj,
-        x: home?.x ?? obj.x,
-        y: home?.y ?? obj.y,
-        scaleX: base,
-        scaleY: base,
-        duration: 150,
-        ease: 'Quad.out',
+        targets: obj, x: home?.x ?? obj.x, y: home?.y ?? obj.y,
+        scaleX: base, scaleY: base, duration: 150, ease: 'Quad.out',
       });
     });
+  }
+
+  // ---- toast ---------------------------------------------------------------
+
+  private toast(message: string): void {
+    this.toastText.setText(message).setAlpha(1);
+    this.tweens.killTweensOf(this.toastText);
+    this.tweens.add({ targets: this.toastText, alpha: 0, delay: 2200, duration: 600 });
   }
 }
