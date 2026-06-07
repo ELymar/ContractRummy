@@ -5,10 +5,14 @@ import { LocalSession } from './net/LocalSession';
 import { GameClient } from './net/GameClient';
 import type { Session } from './net/Session';
 
-// The renderer is server-shaped but server-agnostic. With VITE_WS_URL set it
-// talks to the authoritative engine; without it, an in-browser mock with no
-// rules lets us build and tune rendering + drag/drop offline.
-const wsUrl = import.meta.env.VITE_WS_URL as string | undefined;
+// The renderer is server-shaped but server-agnostic. Point it at the authoritative
+// engine with a `?ws=ws://host:port` query param or the VITE_WS_URL env var;
+// with neither, an in-browser mock with no rules lets us build/tune UI offline.
+//   mock:   http://localhost:5173/
+//   server: http://localhost:5173/?ws=ws://localhost:8080
+const wsUrl =
+  new URLSearchParams(location.search).get('ws') ??
+  (import.meta.env.VITE_WS_URL as string | undefined);
 const session: Session = wsUrl ? new GameClient(wsUrl) : new LocalSession();
 
 const game = new Phaser.Game({

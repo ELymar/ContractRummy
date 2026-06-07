@@ -103,7 +103,9 @@ export class LocalSession implements Session {
         break;
       }
       case ActionType.DISCARD: {
-        const card = command.card as CardDTO | undefined;
+        // Server shape: payload.cardUuid
+        const cardUuid = command.payload?.cardUuid as string | undefined;
+        const card = cardUuid ? v.yourHand.find((c) => c.uuid === cardUuid) : undefined;
         if (card) {
           this.removeFromHand(v, card.uuid);
           v.burnTop = card;
@@ -113,23 +115,17 @@ export class LocalSession implements Session {
         break;
       }
       case ActionType.ADD_TO_MELD: {
-        const card = command.card as CardDTO | undefined;
-        const pileIndex = (command.pileIndex as number) ?? 0;
-        const pile = v.downPiles[pileIndex];
+        // Server shape: payload.{cardUuid, meldIndex, position}
+        const cardUuid = command.payload?.cardUuid as string | undefined;
+        const meldIndex = (command.payload?.meldIndex as number) ?? 0;
+        const position = command.payload?.position as number | undefined;
+        const pile = v.downPiles[meldIndex];
+        const card = cardUuid ? v.yourHand.find((c) => c.uuid === cardUuid) : undefined;
         if (card && pile) {
           this.removeFromHand(v, card.uuid);
-          const at = (command.insertIndex as number) ?? pile.cards.length;
+          const at = position ?? pile.cards.length;
           pile.cards.splice(Math.max(0, Math.min(at, pile.cards.length)), 0, card);
         }
-        break;
-      }
-      case ActionType.SORT: {
-        v.yourHand.sort(
-          (a, b) =>
-            SUITS.indexOf(a.suit as Exclude<Suit, 'Joker'>) -
-              SUITS.indexOf(b.suit as Exclude<Suit, 'Joker'>) ||
-            VALUES.indexOf(a.value) - VALUES.indexOf(b.value),
-        );
         break;
       }
     }

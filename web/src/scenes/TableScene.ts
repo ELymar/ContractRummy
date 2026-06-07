@@ -14,6 +14,13 @@ const FELT = 0x14532d;
 const MELD_STEP = 40;
 const MELD_CARD_SCALE = 0.82;
 
+// Ordering for the client-side hand sort (by suit, then rank low→high).
+const SUIT_ORDER = ['Hearts', 'Spades', 'Clubs', 'Diamonds', 'Joker'];
+const VALUE_ORDER = [
+  'Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
+  'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King',
+];
+
 // One place that owns the screen layout. The table reads down in clean bands:
 //   status → opponents → stock/discard → melds → hand,  with the action
 // buttons parked in a column on the right so they never collide with play.
@@ -56,6 +63,8 @@ export class TableScene extends Phaser.Scene {
   // to meld size while hovering a meld and lift it again on the way out.
   private draggingObj: Phaser.GameObjects.Image | null = null;
   private dragScaleState: 'lift' | 'meld' = 'lift';
+  // Presentational hand sort toggle (no server SORT action exists).
+  private sortHand = false;
 
   constructor() {
     super('Table');
@@ -116,7 +125,12 @@ export class TableScene extends Phaser.Scene {
 
     // Action buttons, parked in a right-hand column clear of all play areas.
     this.makeButton(LAYOUT.buttons.ys[0], 'Draw', () => this.session.send({ type: ActionType.DRAW }));
-    this.makeButton(LAYOUT.buttons.ys[1], 'Sort', () => this.session.send({ type: ActionType.SORT }));
+    // Sort is purely presentational (the server has no SORT action). Toggling it
+    // reorders the displayed hand; discards are by card uuid, so this is safe.
+    this.makeButton(LAYOUT.buttons.ys[1], 'Sort', () => {
+      this.sortHand = !this.sortHand;
+      if (this.session.view) this.render(this.session.view);
+    });
     this.makeButton(LAYOUT.buttons.ys[2], 'End Turn', () =>
       this.session.send({ type: ActionType.END_TURN }),
     );
@@ -302,8 +316,17 @@ export class TableScene extends Phaser.Scene {
     this.layoutMeld(pileIndex, gapIndex);
   }
 
+  private sortedHand(cards: CardDTO[]): CardDTO[] {
+    return [...cards].sort(
+      (a, b) =>
+        SUIT_ORDER.indexOf(a.suit) - SUIT_ORDER.indexOf(b.suit) ||
+        VALUE_ORDER.indexOf(a.value) - VALUE_ORDER.indexOf(b.value),
+    );
+  }
+
   private renderHand(view: GameView): void {
-    const n = view.yourHand.length;
+    const hand = this.sortHand ? this.sortedHand(view.yourHand) : view.yourHand;
+    const n = hand.length;
     // Centered on the table; the button column sits in a higher band so the
     // hand is free to use the full width. Cards overlap as the hand grows.
     const maxWidth = W - 60;
@@ -311,7 +334,7 @@ export class TableScene extends Phaser.Scene {
     const totalW = (n - 1) * spacing;
     const startX = W / 2 - totalW / 2;
 
-    view.yourHand.forEach((card, i) => {
+    hand.forEach((card, i) => {
       const x = startX + i * spacing;
       const img = this.add.image(x, LAYOUT.hand.y, cardKey(card));
       img.setDisplaySize(CARD_W, CARD_H);
@@ -363,13 +386,15 @@ export class TableScene extends Phaser.Scene {
 
       if (drop) {
         if (drop.target.kind === 'discard') {
-          this.session.send({ type: ActionType.DISCARD, card: drop.card });
+          this.session.send({ type: ActionType.DISCARD, payload: { cardUuid: drop.card.uuid } });
         } else {
           this.session.send({
             type: ActionType.ADD_TO_MELD,
-            card: drop.card,
-            pileIndex: drop.target.index ?? 0,
-            insertIndex: drop.insertIndex,
+            payload: {
+              cardUuid: drop.card.uuid,
+              meldIndex: drop.target.index ?? 0,
+              position: drop.insertIndex,
+            },
           });
         }
         // send() triggers a view update -> full re-render, so `obj` is replaced.

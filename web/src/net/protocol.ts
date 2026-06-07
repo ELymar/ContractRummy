@@ -73,10 +73,13 @@ export type ServerMessage =
   | { kind: 'events'; events: GameEvent[]; snapshot: { view: GameView } }
   | { kind: 'error'; message?: string };
 
-// Client -> server envelope. `command.type` is an ActionType; extra fields
-// (e.g. the card to discard) ride alongside it.
+// Client -> server envelope. `command.type` is an ActionType; action arguments
+// ride in `payload` (the server's GameEngine.apply reads {type, playerId, payload}).
+//   DISCARD       -> payload: { cardUuid }
+//   ADD_TO_MELD   -> payload: { cardUuid, meldIndex, position }
+//   DRAW / TAKE_FROM_DISCARD / END_TURN -> no payload
 export interface Command {
   type: ActionType;
   playerId?: string;
-  [key: string]: unknown;
+  payload?: Record<string, unknown>;
 }

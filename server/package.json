@@ -12,6 +12,7 @@
     "legacy-server": "node ./index.js",
     "ws-server": "node ./src/server/index-ws.js",
     "ws-client": "node ./src/clients/terminal/TerminalClient.js",
+    "dev-bot": "node ./scripts/dev-bot.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
