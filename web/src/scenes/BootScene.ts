@@ -20,6 +20,6 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.scene.start('Table');
+    this.scene.start((this.registry.get('startScene') as string) || 'Menu');
   }
 }

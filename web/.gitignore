@@ -5,3 +5,6 @@ dist
 
 # Playwright MCP test artifacts
 .playwright-mcp
+
+# Generated engine bundle (run npm run build:engine)
+src/engine/bundle.js

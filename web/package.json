@@ -4,11 +4,15 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "build:engine": "node scripts/build-engine.mjs",
+    "predev": "npm run build:engine",
     "dev": "vite",
+    "prebuild": "npm run build:engine",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "events": "^3.3.0",
     "phaser": "^3.80.1"
   },
   "devDependencies": {

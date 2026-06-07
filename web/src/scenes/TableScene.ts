@@ -61,6 +61,7 @@ export class TableScene extends Phaser.Scene {
 
   create(): void {
     this.session = this.registry.get('session') as Session;
+    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__session = this.session;
     this.cameras.main.setBackgroundColor(FELT);
     this.input.dragDistanceThreshold = 8; // so a small click selects instead of dragging
 

@@ -1,19 +1,27 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
+import { MenuScene } from './scenes/MenuScene';
 import { TableScene } from './scenes/TableScene';
 import { LocalSession } from './net/LocalSession';
 import { GameClient } from './net/GameClient';
 import type { Session } from './net/Session';
 
-// The renderer is server-shaped but server-agnostic. Point it at the authoritative
-// engine with a `?ws=ws://host:port` query param or the VITE_WS_URL env var;
-// with neither, an in-browser mock with no rules lets us build/tune UI offline.
-//   mock:   http://localhost:5173/
-//   server: http://localhost:5173/?ws=ws://localhost:8080
-const wsUrl =
-  new URLSearchParams(location.search).get('ws') ??
-  (import.meta.env.VITE_WS_URL as string | undefined);
-const session: Session = wsUrl ? new GameClient(wsUrl) : new LocalSession();
+// Routing:
+//   default                              -> Menu (offline single-player)
+//   ?ws=ws://host:port (or VITE_WS_URL)  -> multiplayer via GameClient
+//   ?mock                                -> rules-free LocalSession (UI dev)
+const params = new URLSearchParams(location.search);
+const wsUrl = params.get('ws') ?? (import.meta.env.VITE_WS_URL as string | undefined);
+
+let session: Session | null = null;
+let startScene = 'Menu';
+if (wsUrl) {
+  session = new GameClient(wsUrl);
+  startScene = 'Table';
+} else if (params.has('mock')) {
+  session = new LocalSession();
+  startScene = 'Table';
+}
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -25,13 +33,12 @@ const game = new Phaser.Game({
     width: 1280,
     height: 720,
   },
-  scene: [BootScene, TableScene],
+  scene: [BootScene, MenuScene, TableScene],
 });
 
-game.registry.set('session', session);
+if (session) game.registry.set('session', session);
+game.registry.set('startScene', startScene);
 
-// Dev-only hooks so automated tests can inspect state and map game<->page coords.
 if (import.meta.env.DEV) {
   (window as unknown as Record<string, unknown>).__game = game;
-  (window as unknown as Record<string, unknown>).__session = session;
 }
