@@ -76,7 +76,7 @@ export class TableScene extends Phaser.Scene {
     this.contractText = this.add.text(LAYOUT.contract.x, LAYOUT.contract.y, '', {
       color: '#fde68a', fontSize: '15px',
     }).setDepth(50);
-    this.hintText = this.add.text(640, 596, '', {
+    this.hintText = this.add.text(640, 520, '', {
       color: '#bbf7d0', fontSize: '15px',
     }).setOrigin(0.5).setDepth(50);
     this.toastText = this.add.text(640, 180, '', {
