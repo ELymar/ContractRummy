@@ -1,4 +1,4 @@
-import type { Command, GameView } from './protocol';
+import type { Command, GameView, RoundSummary } from './protocol';
 
 /**
  * The seam between the renderer and "whatever produces the next view".
@@ -23,4 +23,14 @@ export interface Session {
 
   /** Subscribe to rejected-action / error messages (optional; server only). */
   onError?(fn: (message: string) => void): () => void;
+
+  /**
+   * Subscribe to end-of-round score summaries (optional). When provided, the
+   * session pauses after each round until nextRound() is called, so the UI
+   * can show the score table.
+   */
+  onRoundEnd?(fn: (summary: RoundSummary) => void): () => void;
+
+  /** Resume play after a round-end pause (no-op once the game is complete). */
+  nextRound?(): void;
 }

@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import type { Session } from '../net/Session';
 import { ActionType } from '../net/protocol';
-import type { CardDTO, GameView } from '../net/protocol';
+import type { CardDTO, GameView, RoundSummary } from '../net/protocol';
+import { SinglePlayerSession } from '../net/SinglePlayerSession';
 import { CARD_BACK_KEY, cardKey } from '../render/cardArt';
 import {
   COLORS, FONT, addCardGlow, addCardShadow, addTableBackground,
@@ -62,15 +63,24 @@ export class TableScene extends Phaser.Scene {
   private toastText!: Phaser.GameObjects.Text;
 
   private selected = new Set<string>(); // hand card uuids chosen for lay-down
+  private modal: Phaser.GameObjects.Container | null = null;
   private buttons: ButtonRef[] = [];
   private meldZones: Phaser.GameObjects.Zone[] = [];
   private pendingDrop: { target: DropTarget; card: CardDTO } | null = null;
+  private unsubs: (() => void)[] = [];
 
   constructor() {
     super('Table');
   }
 
   create(): void {
+    // Phaser reuses the scene instance across restarts — reset per-run state.
+    this.buttons = [];
+    this.meldZones = [];
+    this.selected.clear();
+    this.modal = null;
+    this.pendingDrop = null;
+
     this.session = this.registry.get('session') as Session;
     if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__session = this.session;
     addTableBackground(this);
@@ -108,8 +118,17 @@ export class TableScene extends Phaser.Scene {
 
     this.setupDragHandlers();
 
-    this.session.onView((view) => this.render(view));
-    this.session.onError?.((msg) => this.toast(msg));
+    // Track subscriptions so a restart doesn't leave the old session driving
+    // a scene whose objects have been destroyed.
+    this.unsubs.push(this.session.onView((view) => this.render(view)));
+    const unError = this.session.onError?.((msg) => this.toast(msg));
+    if (unError) this.unsubs.push(unError);
+    const unRound = this.session.onRoundEnd?.((summary) => this.showScoreModal(summary));
+    if (unRound) this.unsubs.push(unRound);
+    this.events.once('shutdown', () => {
+      this.unsubs.forEach((u) => u());
+      this.unsubs = [];
+    });
     this.session.connect();
     if (this.session.view) this.render(this.session.view);
   }
@@ -538,6 +557,133 @@ export class TableScene extends Phaser.Scene {
         scaleX: base, scaleY: base, duration: 150, ease: 'Quad.out',
       });
     });
+  }
+
+  // ---- round-end score modal -------------------------------------------------
+
+  /**
+   * Score table shown after every round: one column per round (dash until
+   * played) plus totals. After the last round it becomes the final standings
+   * with Play Again / Menu.
+   */
+  private showScoreModal(s: RoundSummary): void {
+    this.closeModal();
+    const modal = this.add.container(0, 0).setDepth(70);
+    this.modal = modal;
+
+    // Veil blocks interaction with the table beneath.
+    const veil = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.55).setInteractive();
+    modal.add(veil);
+
+    const nameW = 150, colW = 56, totalW = 84;
+    const tableW = nameW + s.totalRounds * colW + totalW;
+    const panelW = tableW + 90;
+    const rowH = 40;
+    const panelH = 188 + (s.players.length + 1) * rowH;
+    const px = 640 - panelW / 2;
+    const py = 360 - panelH / 2;
+
+    const g = this.add.graphics();
+    drawPanel(g, px, py, panelW, panelH, { fillAlpha: 0.92, radius: 20, goldBorder: true });
+    modal.add(g);
+
+    const youName = this.session.view?.you?.name;
+    const leader = [...s.players].sort((a, b) => a.total - b.total)[0];
+    const title = s.gameComplete
+      ? leader?.name === youName ? 'You win the game!' : `${leader?.name ?? '…'} wins the game!`
+      : `Round ${s.roundNumber} complete`;
+    const wentOut = s.winnerName === youName ? 'You went out' : `${s.winnerName} went out`;
+    const subtitle = s.gameComplete ? `${wentOut} — lowest total wins` : wentOut;
+
+    modal.add(this.add.text(640, py + 44, title, {
+      fontFamily: FONT, fontSize: '30px', color: COLORS.goldBright, fontStyle: 'bold',
+    }).setOrigin(0.5).setShadow(0, 3, 'rgba(0,0,0,0.5)', 4));
+    modal.add(this.add.text(640, py + 78, subtitle, {
+      fontFamily: FONT, fontSize: '15px', color: COLORS.creamFaint,
+    }).setOrigin(0.5));
+
+    this.drawScoreGrid(modal, s, px + 45, py + 108, nameW, colW, totalW, rowH, leader?.name);
+
+    const btnY = py + panelH - 44;
+    if (s.gameComplete) {
+      const again = makePillButton(this, 640 - 100, btnY, 180, 44, 'Play Again', 16, () => {
+        this.registry.set('session', new SinglePlayerSession(1));
+        this.closeModal();
+        this.scene.restart();
+      });
+      again.setState('primary');
+      const menu = makePillButton(this, 640 + 100, btnY, 180, 44, 'Menu', 16, () => {
+        this.closeModal();
+        this.scene.start('Menu');
+      });
+      modal.add([again.img, again.label, menu.img, menu.label]);
+    } else {
+      const next = makePillButton(this, 640, btnY, 200, 44, 'Next Round', 16, () => {
+        this.closeModal();
+        this.session.nextRound?.();
+      });
+      next.setState('primary');
+      modal.add([next.img, next.label]);
+    }
+  }
+
+  private drawScoreGrid(
+    modal: Phaser.GameObjects.Container,
+    s: RoundSummary,
+    left: number, top: number,
+    nameW: number, colW: number, totalW: number, rowH: number,
+    leaderName: string | undefined,
+  ): void {
+    const youName = this.session.view?.you?.name;
+    const colX = (i: number): number => left + nameW + i * colW + colW / 2;
+    const totalX = left + nameW + s.totalRounds * colW + totalW / 2;
+    const small = { fontFamily: FONT, fontSize: '14px', color: COLORS.creamFaint };
+
+    // Header row.
+    for (let r = 0; r < s.totalRounds; r++) {
+      const isJustPlayed = r + 1 === s.roundNumber;
+      modal.add(this.add.text(colX(r), top, `R${r + 1}`, {
+        ...small, fontStyle: 'bold',
+        color: isJustPlayed ? COLORS.gold : COLORS.creamFaint,
+      }).setOrigin(0.5));
+    }
+    modal.add(this.add.text(totalX, top, 'TOTAL', {
+      ...small, fontStyle: 'bold', color: COLORS.gold,
+    }).setOrigin(0.5));
+
+    // Divider under the header.
+    const g = this.add.graphics();
+    g.lineStyle(1, 0xd9a441, 0.35);
+    g.lineBetween(left, top + rowH / 2 + 4, left + nameW + s.totalRounds * colW + totalW, top + rowH / 2 + 4);
+    modal.add(g);
+
+    s.players.forEach((p, row) => {
+      const y = top + (row + 1) * rowH;
+      const isLeader = s.gameComplete && p.name === leaderName;
+      const nameColor = isLeader ? COLORS.goldBright : COLORS.cream;
+      const label = p.name === youName ? 'You' : p.name;
+      modal.add(this.add.text(left, y, isLeader ? `★ ${label}` : label, {
+        fontFamily: FONT, fontSize: '17px', color: nameColor, fontStyle: 'bold',
+      }).setOrigin(0, 0.5));
+
+      p.rounds.forEach((score, r) => {
+        const isJustPlayed = r + 1 === s.roundNumber;
+        modal.add(this.add.text(colX(r), y, score === null ? '–' : String(score), {
+          fontFamily: FONT, fontSize: '16px',
+          color: score === null ? '#5e7a6a' : isJustPlayed ? COLORS.goldBright : COLORS.cream,
+          fontStyle: isJustPlayed && score !== null ? 'bold' : 'normal',
+        }).setOrigin(0.5));
+      });
+
+      modal.add(this.add.text(totalX, y, String(p.total), {
+        fontFamily: FONT, fontSize: '17px', color: nameColor, fontStyle: 'bold',
+      }).setOrigin(0.5));
+    });
+  }
+
+  private closeModal(): void {
+    this.modal?.destroy(true);
+    this.modal = null;
   }
 
   // ---- toast ---------------------------------------------------------------

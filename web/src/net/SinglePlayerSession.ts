@@ -1,5 +1,5 @@
 import type { Session } from './Session';
-import type { Command, GameView } from './protocol';
+import type { Command, GameView, RoundSummary } from './protocol';
 import { GameEngine, decideAction } from '../engine/bundle';
 import type { EngineEvent } from '../engine/bundle';
 
@@ -20,9 +20,11 @@ export class SinglePlayerSession implements Session {
   private aiIds: string[] = [];
   private aiTimer: ReturnType<typeof setTimeout> | null = null;
   private gameOver = false;
+  private awaitingNextRound = false;
 
   private viewListeners = new Set<(v: GameView) => void>();
   private errorListeners = new Set<(m: string) => void>();
+  private roundEndListeners = new Set<(s: RoundSummary) => void>();
 
   constructor(private opponents = 1) {}
 
@@ -42,7 +44,7 @@ export class SinglePlayerSession implements Session {
   }
 
   send(command: Command): void {
-    if (this.gameOver) return;
+    if (this.gameOver || this.awaitingNextRound) return;
     this.applyFor(command, HUMAN_ID);
     this.emit();
     this.maybeRunAI();
@@ -58,6 +60,20 @@ export class SinglePlayerSession implements Session {
     return () => this.errorListeners.delete(fn);
   }
 
+  onRoundEnd(fn: (summary: RoundSummary) => void): () => void {
+    this.roundEndListeners.add(fn);
+    return () => this.roundEndListeners.delete(fn);
+  }
+
+  /** Resume play after the round-end pause (the score modal's button). */
+  nextRound(): void {
+    if (this.gameOver || !this.awaitingNextRound) return;
+    this.awaitingNextRound = false;
+    this.engine.startNextRound();
+    this.emit();
+    this.maybeRunAI(); // the player after the new dealer may be an AI
+  }
+
   // ---- internals -----------------------------------------------------------
 
   private applyFor(command: Command, playerId: string): void {
@@ -71,23 +87,45 @@ export class SinglePlayerSession implements Session {
 
     const roundEnded = evts.find((e) => e.type === 'ROUND_ENDED');
     if (roundEnded) {
-      if (roundEnded.payload?.gameComplete) {
-        this.gameOver = true;
-        const winner = (roundEnded.payload?.winnerName as string) ?? 'Someone';
-        this.fail(`Game over — ${winner} wins!`);
-      } else {
+      const gameComplete = Boolean(roundEnded.payload?.gameComplete);
+      this.gameOver = gameComplete;
+      const summary = this.buildSummary(roundEnded.payload ?? {}, gameComplete);
+      if (this.roundEndListeners.size > 0) {
+        // Pause here; the UI shows the score table and calls nextRound().
+        this.awaitingNextRound = !gameComplete;
+        const s = summary;
+        this.roundEndListeners.forEach((fn) => fn(s));
+      } else if (!gameComplete) {
         this.engine.startNextRound();
       }
     }
   }
 
+  private buildSummary(payload: Record<string, unknown>, gameComplete: boolean): RoundSummary {
+    const sk = this.engine.scoreKeeper;
+    const players = sk
+      ? sk.playerNames.map((name) => ({
+          name,
+          rounds: [...sk.scores[name]],
+          total: sk.getTotalScore(name),
+        }))
+      : [];
+    return {
+      roundNumber: (payload.roundNumber as number) ?? this.engine.state.currentRound,
+      totalRounds: sk?.totalRounds ?? 7,
+      winnerName: (payload.winnerName as string) ?? 'Someone',
+      gameComplete,
+      players,
+    };
+  }
+
   /** Drive AI turns until it's the human's turn (or the game ends). */
   private maybeRunAI(): void {
-    if (this.aiTimer || this.gameOver) return;
+    if (this.aiTimer || this.gameOver || this.awaitingNextRound) return;
 
     const step = (): void => {
       this.aiTimer = null;
-      if (this.gameOver) return;
+      if (this.gameOver || this.awaitingNextRound) return;
 
       const current = this.engine.state.players[this.engine.state.currentPlayerIndex];
       if (!current || !this.aiIds.includes(current.id)) return; // human's turn — stop

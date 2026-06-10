@@ -75,6 +75,15 @@ export interface GameView {
   validActions: ActionType[];
 }
 
+/** Scores shown between rounds. `rounds[i]` is null until round i+1 is played. */
+export interface RoundSummary {
+  roundNumber: number;
+  totalRounds: number;
+  winnerName: string;
+  gameComplete: boolean;
+  players: { name: string; rounds: (number | null)[]; total: number }[];
+}
+
 export interface GameEvent {
   type: string;
   payload?: Record<string, unknown>;

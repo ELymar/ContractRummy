@@ -21,10 +21,20 @@ export interface EngineState {
   started: boolean;
 }
 
+export interface EngineScoreKeeper {
+  playerNames: string[];
+  totalRounds: number;
+  /** scores[playerName][roundIndex] — null until that round is played. */
+  scores: Record<string, (number | null)[]>;
+  getTotalScore(playerName: string): number;
+  getScoreTable?(): unknown;
+  isGameComplete?(): boolean;
+}
+
 export class GameEngine {
   constructor(opts?: { rng?: () => number });
   state: EngineState;
-  scoreKeeper: { getScoreTable?: () => unknown; isGameComplete?: () => boolean } | null;
+  scoreKeeper: EngineScoreKeeper | null;
   apply(command: Command & { playerId: string }): EngineEvent[];
   getViewFor(playerId: string): GameView;
   startNextRound(): EngineEvent[];
