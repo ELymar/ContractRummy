@@ -26,7 +26,7 @@ if (wsUrl) {
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
-  backgroundColor: '#14532d',
+  backgroundColor: '#1d1007',
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

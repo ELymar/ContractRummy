@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { SinglePlayerSession } from '../net/SinglePlayerSession';
-
-const FELT = 0x14532d;
+import {
+  COLORS, FONT, addCardShadow, addTableBackground, makePillButton,
+} from '../render/theme';
 
 /** Start screen. For now: a single button that begins an offline game vs the AI. */
 export class MenuScene extends Phaser.Scene {
@@ -11,34 +12,44 @@ export class MenuScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
-    this.cameras.main.setBackgroundColor(FELT);
+    addTableBackground(this);
 
-    this.add.text(width / 2, height / 2 - 150, 'Contract Rummy', {
-      fontSize: '56px', color: '#ffffff', fontStyle: 'bold',
+    this.decorativeFan(width / 2, height / 2 - 218);
+
+    this.add.text(width / 2, height / 2 - 90, 'Contract Rummy', {
+      fontFamily: FONT, fontSize: '60px', color: COLORS.goldBright, fontStyle: 'bold',
+    }).setOrigin(0.5).setShadow(0, 4, 'rgba(0,0,0,0.45)', 6);
+    this.add.text(width / 2, height / 2 - 38, 'F A M I L Y   E D I T I O N', {
+      fontFamily: FONT, fontSize: '17px', color: COLORS.creamFaint,
     }).setOrigin(0.5);
-    this.add.text(width / 2, height / 2 - 95, 'Family Edition', {
-      fontSize: '20px', color: '#a7f3d0',
+
+    const btn = makePillButton(this, width / 2, height / 2 + 70, 360, 60,
+      'New Single-Player Game', 21, () => {
+        this.registry.set('session', new SinglePlayerSession(1));
+        this.scene.start('Table');
+      });
+    btn.setState('primary');
+    this.add.text(width / 2, height / 2 + 116, 'Play a full game against the AI', {
+      fontFamily: FONT, fontSize: '14px', color: COLORS.creamFaint,
     }).setOrigin(0.5);
 
-    this.menuButton(height / 2 + 20, 'New Single-Player Game', 'Play a full game against the AI', () => {
-      this.registry.set('session', new SinglePlayerSession(1));
-      this.scene.start('Table');
-    });
-
-    this.add.text(width / 2, height - 40, 'Offline · runs entirely in your browser', {
-      fontSize: '14px', color: '#86efac',
+    this.add.text(width / 2, height - 46, 'Offline · runs entirely in your browser', {
+      fontFamily: FONT, fontSize: '13px', color: COLORS.creamFaint,
     }).setOrigin(0.5).setAlpha(0.7);
   }
 
-  private menuButton(y: number, label: string, sub: string, onClick: () => void): void {
-    const { width } = this.scale;
-    const bg = this.add.rectangle(width / 2, y, 360, 64, 0x166534)
-      .setStrokeStyle(2, 0x86efac)
-      .setInteractive({ useHandCursor: true });
-    this.add.text(width / 2, y - 8, label, { fontSize: '22px', color: '#ffffff' }).setOrigin(0.5);
-    this.add.text(width / 2, y + 18, sub, { fontSize: '13px', color: '#bbf7d0' }).setOrigin(0.5);
-    bg.on('pointerover', () => bg.setFillStyle(0x15803d));
-    bg.on('pointerout', () => bg.setFillStyle(0x166534));
-    bg.on('pointerup', onClick);
+  /** A small arc of face-up cards above the title, like an app-store banner. */
+  private decorativeFan(cx: number, cy: number): void {
+    const keys = ['A_spades', 'K_hearts', 'Q_diamonds', 'J_clubs'];
+    const cardW = 96;
+    const cardH = 134;
+    keys.forEach((key, i) => {
+      const t = i - (keys.length - 1) / 2; // -1.5 .. 1.5
+      const x = cx + t * 64;
+      const y = cy + Math.abs(t) * 14;
+      const angle = t * 11;
+      addCardShadow(this, x, y, cardW, cardH, 0.35).setAngle(angle);
+      this.add.image(x, y, key).setDisplaySize(cardW, cardH).setAngle(angle);
+    });
   }
 }
