@@ -125,9 +125,10 @@ class GameEngine {
       }
     }
 
-    // Action phase actions (after drawing or on first turn)
-    if (player.tookCard || this.state.firstTurn) {
-      // Can always discard (to end turn)
+    // Action phase actions (after drawing or on first turn). The discard ends
+    // the player's actions, so none of these remain valid once discarded.
+    if ((player.tookCard || this.state.firstTurn) && !player.discarded) {
+      // Can discard (to end turn)
       validActions.push('DISCARD');
 
       // Can lay down if not already down and have drawn

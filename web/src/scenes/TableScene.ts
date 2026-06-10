@@ -276,6 +276,7 @@ export class TableScene extends Phaser.Scene {
   /** A one-line "what to do now" prompt under the table. */
   private hintFor(view: GameView): string {
     if (!view.isYourTurn) return 'AI is playing…';
+    if (view.discarded) return 'You discarded — press End Turn to pass play.';
     if (view.youAreDown) return 'Drag a card onto any meld to lay it off, then discard.';
     if (!view.tookCard) {
       return view.firstTurn
@@ -477,6 +478,7 @@ export class TableScene extends Phaser.Scene {
     if (!view.isYourTurn) return this.toast('Wait for your turn.');
     if (view.youAreDown) return this.toast("You're already down — drag cards onto melds to lay off.");
     if (!view.validActions.includes(ActionType.LAY_DOWN)) {
+      if (view.discarded) return this.toast('You already discarded — laying down ended with your turn.');
       return this.toast(
         view.tookCard ? "You can't lay down right now." : 'Draw a card first, then lay down.',
       );
@@ -513,7 +515,11 @@ export class TableScene extends Phaser.Scene {
       return this.toast('Select a single card to discard — multiple cards are for laying down.');
     }
     if (!view.validActions.includes(ActionType.DISCARD)) {
-      return this.toast('Draw a card before discarding.');
+      return this.toast(
+        view.discarded
+          ? 'You already discarded this turn — press End Turn.'
+          : 'Draw a card before discarding.',
+      );
     }
     const cardUuid = [...this.selected][0];
     this.session.send({ type: ActionType.DISCARD, payload: { cardUuid } });

@@ -24,6 +24,10 @@ class LayDownHandler extends ActionHandler {
       return this.createError('Must draw a card before laying down');
     }
 
+    if (player.discarded) {
+      return this.createError('Cannot lay down after discarding — the discard ends your turn');
+    }
+
     // Validate melds payload
     const {melds} = payload;
     if (!melds || !Array.isArray(melds) || melds.length === 0) {

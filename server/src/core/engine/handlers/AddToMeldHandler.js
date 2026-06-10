@@ -17,6 +17,10 @@ class AddToMeldHandler extends ActionHandler {
       return this.createError('Must be down before adding to melds');
     }
 
+    if (player.discarded) {
+      return this.createError('Cannot lay off after discarding — the discard ends your turn');
+    }
+
     // Validate and find card
     const {cardUuid, meldIndex, position} = payload;
     const cardLookup = this.findCardByUuid(player, cardUuid);

@@ -21,6 +21,11 @@ class DiscardHandler extends ActionHandler {
       return this.createError('Must draw a card before discarding');
     }
 
+    // The discard ends the player's actions — one per turn
+    if (player.discarded) {
+      return this.createError('Already discarded this turn — end your turn');
+    }
+
     // Find and validate card
     const {cardUuid} = payload;
     const cardLookup = this.findCardByUuid(player, cardUuid);
