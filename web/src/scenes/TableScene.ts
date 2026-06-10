@@ -22,9 +22,9 @@ const VALUE_ORDER = [
 ];
 
 const LAYOUT = {
-  info: { x: 40, y: 36, w: 384, h: 58 },
+  info: { x: 40, y: 32, h: 36 },
   turnChip: { x: 1170, y: 100, w: 152, h: 36 },
-  opponents: { plateY: 66, cardsY: 128, scale: 0.5, xs: [430, 850] },
+  opponents: { plateY: 66, cardsY: 128, scale: 0.5 },
   stock: { x: 560, y: 250 },
   discard: { x: 700, y: 250 },
   pileLabelY: 334,
@@ -51,6 +51,7 @@ interface ButtonRef {
 export class TableScene extends Phaser.Scene {
   private session!: Session;
   private dynamic!: Phaser.GameObjects.Container;
+  private infoPanel!: Phaser.GameObjects.Graphics;
   private roundText!: Phaser.GameObjects.Text;
   private contractText!: Phaser.GameObjects.Text;
   private turnChipImg!: Phaser.GameObjects.Image;
@@ -78,13 +79,16 @@ export class TableScene extends Phaser.Scene {
     this.dynamic = this.add.container(0, 0).setDepth(10);
     this.buildStaticFurniture();
 
+    // Slim one-line info bar, top-left; the panel is redrawn to fit its text.
     const info = LAYOUT.info;
-    this.roundText = this.add.text(info.x + 18, info.y + 9, '', {
+    const infoCy = info.y + info.h / 2;
+    this.infoPanel = this.add.graphics().setDepth(1);
+    this.roundText = this.add.text(info.x + 18, infoCy, '', {
       fontFamily: FONT, color: COLORS.gold, fontSize: '15px', fontStyle: 'bold',
-    }).setDepth(50);
-    this.contractText = this.add.text(info.x + 18, info.y + 31, '', {
+    }).setOrigin(0, 0.5).setDepth(50);
+    this.contractText = this.add.text(info.x + 18, infoCy, '', {
       fontFamily: FONT, color: COLORS.cream, fontSize: '14px',
-    }).setDepth(50);
+    }).setOrigin(0, 0.5).setDepth(50);
     this.hintText = this.add.text(640, 528, '', {
       fontFamily: FONT, color: COLORS.creamFaint, fontSize: '15px', fontStyle: 'italic',
     }).setOrigin(0.5).setDepth(50);
@@ -114,9 +118,6 @@ export class TableScene extends Phaser.Scene {
 
   private buildStaticFurniture(): void {
     const panels = this.add.graphics().setDepth(1);
-
-    const info = LAYOUT.info;
-    drawPanel(panels, info.x, info.y, info.w, info.h);
 
     const rail = LAYOUT.rail;
     drawPanel(panels, rail.left - 14, rail.top, rail.right - rail.left + 28,
@@ -222,8 +223,13 @@ export class TableScene extends Phaser.Scene {
     this.renderHand(view);
 
     this.roundText.setText(`ROUND ${view.round}`);
-    const met = view.youAreDown ? '   ·   ✓ contract met' : '';
-    this.contractText.setText(`${this.contractLabel(view)}${met}`);
+    const met = view.youAreDown ? '   ·   ✓ met' : '';
+    this.contractText.setText(`·   ${this.contractLabel(view)}${met}`);
+    this.contractText.setX(this.roundText.x + this.roundText.width + 12);
+    const info = LAYOUT.info;
+    this.infoPanel.clear();
+    drawPanel(this.infoPanel, info.x, info.y,
+      this.contractText.x + this.contractText.width + 18 - info.x, info.h);
     this.stockCaption.setText(`STOCK · ${view.deckCount}`);
     this.hintText.setText(this.hintFor(view));
     this.refreshTurnChip(view);
@@ -233,7 +239,7 @@ export class TableScene extends Phaser.Scene {
   /** Contract description without the redundant "Round N:" prefix. */
   private contractLabel(view: GameView): string {
     if (!view.contract) return '';
-    return view.contract.description.replace(/^Round \d+:\s*/, 'Contract: ');
+    return view.contract.description.replace(/^Round \d+:\s*/, '');
   }
 
   private refreshTurnChip(view: GameView): void {
@@ -263,12 +269,23 @@ export class TableScene extends Phaser.Scene {
     return 'Tap a card to select it: 1 to Discard, or a full meld to Lay Down.';
   }
 
+  /**
+   * Opponent column centers. One opponent sits dead-center; two are spread
+   * symmetrically but kept right of the info bar and left of the buttons.
+   */
+  private opponentXs(n: number): number[] {
+    if (n <= 1) return [W / 2];
+    if (n === 2) return [510, 890];
+    return Array.from({ length: n }, (_, i) => 470 + (i * 580) / (n - 1));
+  }
+
   private renderOpponents(view: GameView): void {
     const meId = view.you?.id ?? this.session.playerId;
     const currentId = view.players[view.currentPlayerIndex]?.id;
     const opponents = view.players.filter((p) => p.id !== meId);
+    const xs = this.opponentXs(opponents.length);
     opponents.forEach((p, i) => {
-      const cx = LAYOUT.opponents.xs[i] ?? 430 + i * 420;
+      const cx = xs[i];
       const isTheirTurn = p.id === currentId;
 
       // Name plate, gold-rimmed while they play.
