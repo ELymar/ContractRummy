@@ -27,11 +27,14 @@ class DrawHandler extends ActionHandler {
     player.hand.addCards(cards);
     player.tookCard = true;
 
+    // Deck draws are private: events are broadcast to every client, so the
+    // drawn card identity must not ride on them. The drawer sees the card in
+    // their own view snapshot. (Discard takes stay public — the card was face
+    // up — so TakeFromDiscardHandler does include cardIds.)
     return [
       this.emit(EventType.CARD_DRAWN, {
         playerId,
         n,
-        cardIds: cards.map((c) => c.toString?.() ?? String(c)),
       }),
     ];
   }

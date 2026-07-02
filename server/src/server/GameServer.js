@@ -77,7 +77,9 @@ class GameServer {
               return;
             }
             if (msg.kind === 'command') {
-              const action = {...msg.command, playerId: msg.command.playerId || playerId};
+              // Identity comes from the connection, never from the message —
+              // a client must not be able to act as another player.
+              const action = {...msg.command, playerId};
               const evts = this.engine.apply(action);
 
               // Log the action and its results
