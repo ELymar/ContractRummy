@@ -103,7 +103,7 @@ describe('Discard ends the turn actions', () => {
     expect(engine.state.downPiles[0].cards.length).toBe(3);
   });
 
-  test('valid actions after discarding are only END_TURN, SORT and QUIT', () => {
+  test('valid actions after discarding are only END_TURN and QUIT', () => {
     discardFirstCard();
 
     const actions = engine.getValidActionsFor('p1');

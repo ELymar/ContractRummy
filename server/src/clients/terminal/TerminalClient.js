@@ -347,9 +347,8 @@ class TerminalClient {
           actionMenu.addOption('Add to existing melds', () => 'addtomeld');
         }
 
-        if (validActions.includes('SORT')) {
-          actionMenu.addOption('Sort hand', () => 'sort');
-        }
+        // Sorting is local presentation — always available
+        actionMenu.addOption('Sort hand', () => 'sort');
 
         if (validActions.includes('QUIT')) {
           actionMenu.addOption('Quit game', () => 'quit');
@@ -413,9 +412,8 @@ class TerminalClient {
         );
       }
 
-      if (validActions.includes('SORT')) {
-        drawMenu.addOption('Sort hand', () => 'sort');
-      }
+      // Sorting is local presentation — always available
+      drawMenu.addOption('Sort hand', () => 'sort');
 
       if (validActions.includes('QUIT')) {
         drawMenu.addOption('Quit game', () => 'quit');

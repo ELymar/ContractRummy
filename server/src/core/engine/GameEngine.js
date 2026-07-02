@@ -143,8 +143,8 @@ class GameEngine {
       }
     }
 
-    // Can always sort hand during your turn (regardless of phase)
-    validActions.push('SORT');
+    // Note: sorting is a client-side presentation concern — clients reorder
+    // their own display. There is no SORT engine action.
 
     // Can always quit during your turn
     validActions.push('QUIT');

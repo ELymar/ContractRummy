@@ -92,7 +92,7 @@ export class LocalSession implements Session {
       // Mock: everything is allowed.
       validActions: [
         ActionType.DRAW, ActionType.TAKE_FROM_DISCARD, ActionType.DISCARD,
-        ActionType.LAY_DOWN, ActionType.ADD_TO_MELD, ActionType.END_TURN, ActionType.SORT,
+        ActionType.LAY_DOWN, ActionType.ADD_TO_MELD, ActionType.END_TURN,
       ],
     } as GameView & { playerId: string };
 
