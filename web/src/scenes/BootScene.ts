@@ -10,7 +10,7 @@ export class BootScene extends Phaser.Scene {
 
   preload(): void {
     for (const key of allCardKeys()) {
-      this.load.image(key, `/cards/${key}.png`);
+      this.load.image(key, `cards/${key}.png`);
     }
 
     const { width, height } = this.scale;
