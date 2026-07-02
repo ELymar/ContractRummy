@@ -33,11 +33,18 @@ info-bar layout.
 
 **Nearest next steps (candidates):**
 1. Round-end **animations / notice modal** polish (card dealing, meld laying)
-2. Reconnect the **web `GameClient`** path to the live server end-to-end
-   (multiplayer), including the new `onRoundEnd` / `nextRound` session hooks
+2. ✅ ~~Reconnect the **web `GameClient`** path to the live server end-to-end~~ (done 2026-07)
 3. Choose opponent count / game options from the menu (engine already supports N players)
 4. A lightweight **Playwright test suite** for the web client (drives `window.__session`)
 5. Sound effects; mobile/touch layout pass
+
+**Hosting backlog (from the 2026-07 security/itch.io audit — client on itch.io, server on Eugene's k8s):**
+- ✅ ~~Command identity from connection (spoofing fix)~~ · ✅ ~~mask deck-draw events~~ · ✅ ~~relative asset paths (`base: './'`)~~
+- [ ] **Rooms / lobby codes** — server is one global game per process; required before a public itch link
+- [ ] **wss://** behind ingress-nginx + cert-manager (Let's Encrypt); set `VITE_WS_URL` to the wss URL for the itch build
+- [ ] Ingress `proxy-read-timeout`/`proxy-send-timeout: 3600` (default 60s kills idle games); single replica until state moves to Redis
+- [ ] **Origin-header allowlist** on the WS upgrade (CORS does not apply to WebSockets)
+- [ ] Rate limiting per connection, `maxPayload` cap on the ws server, server-side turn timer
 
 > The Godot-specific roadmap in **Phase 2** below is **superseded** by `web/`.
 > **Phase 3 (Production Deployment)** and **Phase 4 (Enhancements)** remain valid
