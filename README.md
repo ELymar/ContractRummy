@@ -1,17 +1,37 @@
 # Contract Rummy Card Game
 
-A terminal-based Contract Rummy card game with support for local multiplayer and client-server architecture.
+A Contract Rummy card game with a Node.js authoritative engine, a browser
+front-end, a heuristic AI opponent, and a terminal client.
 
-## Getting Started
+## Repository layout
 
-**All commands must be run from the `server` directory:**
+| Path      | What it is                                                                 |
+| --------- | -------------------------------------------------------------------------- |
+| `server/` | Authoritative game engine, action handlers, AI (`decideAction`), scoring, terminal + WebSocket clients. 287 tests. |
+| `web/`    | **Active front-end** — Phaser 3 + TypeScript. Plays a full offline single-player game vs. the AI by bundling the server engine into the browser. See [`web/README.md`](web/README.md). |
+| `ui/`     | Earlier Godot 4.3 UI prototype — archived, superseded by `web/`.           |
+| `docs/`   | `game-state-schema.md` (client/server message shapes).                     |
+
+## Play in the browser (single-player vs. AI) — current focus
+
+```bash
+cd web
+npm install
+npm run dev      # then open the printed http://localhost:5173
+```
+
+Runs entirely offline: the browser bundles the same `GameEngine` and AI the
+server uses, so a full 7-round game (with an end-of-round score table) needs no
+server running.
+
+## Terminal game & server
+
+**All server commands must be run from the `server` directory:**
 
 ```bash
 cd server
 npm install
 ```
-
-## Starting the Game
 
 ### Option 1: Standalone Terminal Game (Recommended)
 Play a local 2-player game with one terminal:
@@ -63,9 +83,13 @@ npm run test:regression
 
 ## Architecture
 
-- **Server**: WebSocket-based game server with game engine
+- **Game Engine**: Authoritative core game logic with UUID-based card tracking
+- **Action Handlers**: Command pattern for game actions (draw, lay down, discard, …)
+- **AI**: `decideAction` heuristic brain, shared by the terminal, server, and web clients
+- **Server**: WebSocket-based game server wrapping the engine
 - **Terminal Client**: Interactive CLI interface
-- **Game Engine**: Core game logic with UUID-based card tracking
-- **Action Handlers**: Command pattern for game actions
+- **Web Client** (`web/`): Phaser front-end that bundles the engine to run
+  single-player offline, and can also connect to the WebSocket server
 
-The architecture supports future expansion to web UI, mobile apps, and bot players.
+The engine is the single source of truth for the rules; every client (terminal,
+web, AI) drives the same engine, so rule behavior is consistent everywhere.

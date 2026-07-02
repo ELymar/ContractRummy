@@ -4,6 +4,47 @@ This document outlines the next phases of development for the Contract Rummy car
 
 ---
 
+## 📍 Current Status (2026-07)
+
+**The front-end pivoted from Godot to a Phaser 3 + TypeScript web client (`web/`).**
+The Godot work below (Phase 2) is archived — see `ui/` — and is kept for reference
+only.
+
+**Working today — offline single-player web game (`web/`):**
+- ✅ Full playable game vs. the heuristic AI, running entirely in the browser
+- ✅ Server `GameEngine` + `decideAction` AI bundled into the browser (esbuild),
+  so the browser and Node server run identical rules (single source of truth)
+- ✅ Complete human turn: draw / take discard, select + lay down a contract,
+  lay off onto melds (drag-and-drop), discard
+- ✅ All 7 rounds with contract progression; dealer rotation between rounds
+- ✅ End-of-round score modal — per-round columns + running totals, filled in
+  progressively; final round shows full standings, winner, Play Again / Menu
+- ✅ Casino-table visual theme (runtime-generated felt/wood/shadows/gold pills,
+  bundled Nunito font); card art unchanged
+- ✅ `Session` seam with three implementations: `SinglePlayerSession` (offline),
+  `GameClient` (WebSocket multiplayer), `LocalSession` (rules-free UI mock)
+
+**Backend (`server/`):** authoritative engine, action handlers, AI, `ScoreKeeper`,
+terminal + WebSocket clients. **287 tests passing.**
+
+**Recent fixes:** discarding now correctly ends a turn's actions (no lay
+down / lay off / second discard after discarding); opponent row centering and
+info-bar layout.
+
+**Nearest next steps (candidates):**
+1. Round-end **animations / notice modal** polish (card dealing, meld laying)
+2. Reconnect the **web `GameClient`** path to the live server end-to-end
+   (multiplayer), including the new `onRoundEnd` / `nextRound` session hooks
+3. Choose opponent count / game options from the menu (engine already supports N players)
+4. A lightweight **Playwright test suite** for the web client (drives `window.__session`)
+5. Sound effects; mobile/touch layout pass
+
+> The Godot-specific roadmap in **Phase 2** below is **superseded** by `web/`.
+> **Phase 3 (Production Deployment)** and **Phase 4 (Enhancements)** remain valid
+> backlog for whichever front-end ships.
+
+---
+
 ## Phase 1: Backend Refactoring ✅ COMPLETE
 
 All planned refactorings have been completed:
@@ -17,7 +58,11 @@ All planned refactorings have been completed:
 
 ---
 
-## Phase 2: UI Development (Current Priority) 🔄 IN PROGRESS
+## Phase 2: UI Development — ⚠️ SUPERSEDED (Godot, archived)
+
+> **Historical.** This phase describes the Godot 4.3 prototype in `ui/`. The
+> project has since moved to the Phaser web client in `web/` (see Current Status
+> at the top). Kept for reference; not the active plan.
 
 ### Technology Decision: **Godot Engine 4.3** ⭐
 
