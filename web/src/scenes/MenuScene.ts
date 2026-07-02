@@ -1,8 +1,18 @@
 import Phaser from 'phaser';
+import { GameClient } from '../net/GameClient';
 import { SinglePlayerSession } from '../net/SinglePlayerSession';
 import {
   COLORS, FONT, addCardShadow, addTableBackground, makePillButton,
 } from '../render/theme';
+
+/** Multiplayer server URL: ?ws=… beats VITE_WS_URL beats same-host default. */
+function wsUrl(): string {
+  const param = new URLSearchParams(location.search).get('ws');
+  if (param) return param;
+  const env = import.meta.env.VITE_WS_URL as string | undefined;
+  if (env) return env;
+  return `ws://${location.hostname}:8080`;
+}
 
 /** Start screen. For now: a single button that begins an offline game vs the AI. */
 export class MenuScene extends Phaser.Scene {
@@ -23,15 +33,24 @@ export class MenuScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: '17px', color: COLORS.creamFaint,
     }).setOrigin(0.5);
 
-    const btn = makePillButton(this, width / 2, height / 2 + 70, 360, 60,
+    const btn = makePillButton(this, width / 2, height / 2 + 52, 360, 60,
       'New Single-Player Game', 21, () => {
         this.registry.set('session', new SinglePlayerSession(1));
         this.scene.start('Table');
       });
     btn.setState('primary');
-    this.add.text(width / 2, height / 2 + 116, 'Play a full game against the AI', {
+    this.add.text(width / 2, height / 2 + 96, 'Play a full game against the AI', {
       fontFamily: FONT, fontSize: '14px', color: COLORS.creamFaint,
     }).setOrigin(0.5);
+
+    makePillButton(this, width / 2, height / 2 + 152, 360, 52,
+      'Multiplayer (local server)', 18, () => {
+        this.registry.set('session', new GameClient(wsUrl()));
+        this.scene.start('Table');
+      });
+    this.add.text(width / 2, height / 2 + 192, `Connects to ${wsUrl()}`, {
+      fontFamily: FONT, fontSize: '12px', color: COLORS.creamFaint,
+    }).setOrigin(0.5).setAlpha(0.7);
 
     this.add.text(width / 2, height - 46, 'Offline · runs entirely in your browser', {
       fontFamily: FONT, fontSize: '13px', color: COLORS.creamFaint,

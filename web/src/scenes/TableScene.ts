@@ -64,6 +64,7 @@ export class TableScene extends Phaser.Scene {
 
   private selected = new Set<string>(); // hand card uuids chosen for lay-down
   private modal: Phaser.GameObjects.Container | null = null;
+  private modalSummary: RoundSummary | null = null;
   private buttons: ButtonRef[] = [];
   private meldZones: Phaser.GameObjects.Zone[] = [];
   private pendingDrop: { target: DropTarget; card: CardDTO } | null = null;
@@ -79,6 +80,7 @@ export class TableScene extends Phaser.Scene {
     this.meldZones = [];
     this.selected.clear();
     this.modal = null;
+    this.modalSummary = null;
     this.pendingDrop = null;
 
     this.session = this.registry.get('session') as Session;
@@ -228,6 +230,12 @@ export class TableScene extends Phaser.Scene {
   // ---- per-view rendering --------------------------------------------------
 
   private render(view: GameView): void {
+    // Another player advanced past the score screen — drop our copy of it.
+    if (this.modal && this.modalSummary && !this.modalSummary.gameComplete
+        && view.round !== this.modalSummary.roundNumber) {
+      this.closeModal();
+    }
+
     this.dynamic.removeAll(true);
     this.meldZones.forEach((z) => z.destroy());
     this.meldZones = [];
@@ -263,6 +271,11 @@ export class TableScene extends Phaser.Scene {
 
   private refreshTurnChip(view: GameView): void {
     const { w, h } = LAYOUT.turnChip;
+    if (!view.started) {
+      this.turnChipImg.setTexture(buttonTexture(this, w, h, 'disabled'));
+      this.turnChipText.setText('WAITING…').setColor(COLORS.creamFaint);
+      return;
+    }
     if (view.isYourTurn) {
       this.turnChipImg.setTexture(buttonTexture(this, w, h, 'primary'));
       this.turnChipText.setText('YOUR TURN').setColor(COLORS.textOnGold);
@@ -275,7 +288,11 @@ export class TableScene extends Phaser.Scene {
 
   /** A one-line "what to do now" prompt under the table. */
   private hintFor(view: GameView): string {
-    if (!view.isYourTurn) return 'AI is playing…';
+    if (!view.started) return 'Waiting for another player to join…';
+    if (!view.isYourTurn) {
+      const current = view.players[view.currentPlayerIndex];
+      return current ? `${current.name} is playing…` : 'Waiting…';
+    }
     if (view.discarded) return 'You discarded — press End Turn to pass play.';
     if (view.youAreDown) return 'Drag a card onto any meld to lay it off, then discard.';
     if (!view.tookCard) {
@@ -576,6 +593,7 @@ export class TableScene extends Phaser.Scene {
     this.closeModal();
     const modal = this.add.container(0, 0).setDepth(70);
     this.modal = modal;
+    this.modalSummary = s;
 
     // Veil blocks interaction with the table beneath.
     const veil = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.55).setInteractive();
@@ -612,17 +630,28 @@ export class TableScene extends Phaser.Scene {
 
     const btnY = py + panelH - 44;
     if (s.gameComplete) {
-      const again = makePillButton(this, 640 - 100, btnY, 180, 44, 'Play Again', 16, () => {
-        this.registry.set('session', new SinglePlayerSession(1));
-        this.closeModal();
-        this.scene.restart();
-      });
-      again.setState('primary');
-      const menu = makePillButton(this, 640 + 100, btnY, 180, 44, 'Menu', 16, () => {
-        this.closeModal();
-        this.scene.start('Menu');
-      });
-      modal.add([again.img, again.label, menu.img, menu.label]);
+      // Play Again re-runs the local engine; in multiplayer the server owns
+      // the lifecycle, so only offer the way back to the menu.
+      if (this.session instanceof SinglePlayerSession) {
+        const again = makePillButton(this, 640 - 100, btnY, 180, 44, 'Play Again', 16, () => {
+          this.registry.set('session', new SinglePlayerSession(1));
+          this.closeModal();
+          this.scene.restart();
+        });
+        again.setState('primary');
+        const menu = makePillButton(this, 640 + 100, btnY, 180, 44, 'Menu', 16, () => {
+          this.closeModal();
+          this.scene.start('Menu');
+        });
+        modal.add([again.img, again.label, menu.img, menu.label]);
+      } else {
+        const menu = makePillButton(this, 640, btnY, 180, 44, 'Back to Menu', 16, () => {
+          this.closeModal();
+          this.scene.start('Menu');
+        });
+        menu.setState('primary');
+        modal.add([menu.img, menu.label]);
+      }
     } else {
       const next = makePillButton(this, 640, btnY, 200, 44, 'Next Round', 16, () => {
         this.closeModal();
@@ -690,6 +719,7 @@ export class TableScene extends Phaser.Scene {
   private closeModal(): void {
     this.modal?.destroy(true);
     this.modal = null;
+    this.modalSummary = null;
   }
 
   // ---- toast ---------------------------------------------------------------

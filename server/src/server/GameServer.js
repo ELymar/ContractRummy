@@ -5,14 +5,52 @@ const {ActionType} = require('../core/engine/actions');
 const GameLogger = require('./GameLogger');
 
 class GameServer {
-  constructor({port = 8080, enableLogging = true, autoJoinReady = true} = {}) {
+  constructor({port = 8080, enableLogging = true, autoJoinReady = true, pauseAtRoundEnd = false} = {}) {
     this.port = port;
     this.engine = new GameEngine({});
     this.players = new Map(); // ws -> { playerId, name }
     this.enableLogging = enableLogging;
     this.logger = enableLogging ? new GameLogger(this.engine.gameId) : null;
     this.autoJoinReady = autoJoinReady;
+    // When true, the server waits for a {kind:'next_round'} message from any
+    // player before dealing the next round (so clients can show scores).
+    this.pauseAtRoundEnd = pauseAtRoundEnd;
+    this.roundPending = false;
     this.wss = null;
+  }
+
+  // Send events + each client's own view snapshot to every open connection.
+  broadcast(events) {
+    if (!this.wss) return;
+    this.wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        try {
+          const pId = this.players.get(client)?.playerId;
+          client.send(
+            JSON.stringify({
+              kind: 'events',
+              events,
+              snapshot: {view: this.engine.getViewFor(pId)},
+            })
+          );
+        } catch (error) {
+          console.warn('Failed to send to client:', error.message);
+          this.players.delete(client);
+        }
+      }
+    });
+  }
+
+  // Deal the next round and notify everyone (used by the auto path and by
+  // the explicit {kind:'next_round'} request when pauseAtRoundEnd is on).
+  startNextRoundAndBroadcast() {
+    this.roundPending = false;
+    const nextRoundEvents = this.engine.startNextRound();
+    if (this.logger) {
+      this.logger.logEvent('next_round', {round: this.engine.state.currentRound});
+      this.logger.logGameState('round_started', this.engine.state);
+    }
+    this.broadcast(nextRoundEvents);
   }
 
   start() {
@@ -31,6 +69,13 @@ class GameServer {
         ws.on('message', (raw) => {
           try {
             const msg = JSON.parse(raw);
+            if (msg.kind === 'next_round') {
+              // Any player may advance past the score screen.
+              if (this.roundPending) {
+                this.startNextRoundAndBroadcast();
+              }
+              return;
+            }
             if (msg.kind === 'command') {
               const action = {...msg.command, playerId: msg.command.playerId || playerId};
               const evts = this.engine.apply(action);
@@ -57,26 +102,10 @@ class GameServer {
               }
 
               // Broadcast events and current per-player views
-              wss.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                  try {
-                    const pId = this.players.get(client)?.playerId;
-                    client.send(
-                      JSON.stringify({
-                        kind: 'events',
-                        events: evts,
-                        snapshot: {view: this.engine.getViewFor(pId)},
-                      })
-                    );
-                  } catch (error) {
-                    console.warn('Failed to send to client:', error.message);
-                    // Remove the client from the players map if it's dead
-                    this.players.delete(client);
-                  }
-                }
-              });
+              this.broadcast(evts);
 
-              // If round ended, either end game on quit or auto-start next round if not complete
+              // If round ended, either end game on quit, pause for the score
+              // screen (pauseAtRoundEnd), or auto-start the next round.
               if (evts.some((e) => e.type === 'ROUND_ENDED')) {
                 const roundEnded = evts.find((e) => e.type === 'ROUND_ENDED');
                 const gameComplete = roundEnded?.payload?.gameComplete;
@@ -84,85 +113,19 @@ class GameServer {
 
                 if (reason === 'opponent_quit') {
                   // End the game session when someone quits
-                  const gameEndedEvent = {type: 'GAME_ENDED', payload: {reason: 'opponent_quit'}};
-                  wss.clients.forEach((client) => {
-                    if (client.readyState === WebSocket.OPEN) {
-                      try {
-                        const pId = this.players.get(client)?.playerId;
-                        client.send(
-                          JSON.stringify({
-                            kind: 'events',
-                            events: [gameEndedEvent],
-                            snapshot: {view: this.engine.getViewFor(pId)},
-                          })
-                        );
-                      } catch (error) {
-                        console.warn('Failed to send game end to client:', error.message);
-                        this.players.delete(client);
-                      }
-                    }
-                  });
+                  this.broadcast([{type: 'GAME_ENDED', payload: {reason: 'opponent_quit'}}]);
                 } else if (!gameComplete) {
-                  try {
-                    console.log('Starting next round...'); // Debug log
-                    const nextRoundEvents = this.engine.startNextRound();
-                    console.log(
-                      'Next round events:',
-                      nextRoundEvents.map((e) => e.type)
-                    ); // Debug log
-
-                    // Log and broadcast next round start
-                    if (this.logger) {
-                      this.logger.logEvent('next_round', {round: this.engine.state.currentRound});
-                      this.logger.logGameState('round_started', this.engine.state);
+                  if (this.pauseAtRoundEnd) {
+                    this.roundPending = true;
+                  } else {
+                    try {
+                      this.startNextRoundAndBroadcast();
+                    } catch (error) {
+                      console.error('Failed to start next round:', error);
+                      this.broadcast([
+                        {type: 'GAME_ENDED', payload: {reason: 'server_error', error: error.message}},
+                      ]);
                     }
-
-                    wss.clients.forEach((client) => {
-                      if (client.readyState === WebSocket.OPEN) {
-                        try {
-                          const pId = this.players.get(client)?.playerId;
-                          client.send(
-                            JSON.stringify({
-                              kind: 'events',
-                              events: nextRoundEvents,
-                              snapshot: {view: this.engine.getViewFor(pId)},
-                            })
-                          );
-                        } catch (error) {
-                          console.warn('Failed to send next round to client:', error.message);
-                          this.players.delete(client);
-                        }
-                      }
-                    });
-
-                    console.log(
-                      'Next round successfully started. Current round:',
-                      this.engine.state.currentRound
-                    ); // Debug log
-                  } catch (error) {
-                    console.error('Failed to start next round:', error);
-                    // Send error to all clients and end the game session
-                    const gameEndedEvent = {
-                      type: 'GAME_ENDED',
-                      payload: {reason: 'server_error', error: error.message},
-                    };
-                    wss.clients.forEach((client) => {
-                      if (client.readyState === WebSocket.OPEN) {
-                        try {
-                          const pId = this.players.get(client)?.playerId;
-                          client.send(
-                            JSON.stringify({
-                              kind: 'events',
-                              events: [gameEndedEvent],
-                              snapshot: {view: this.engine.getViewFor(pId)},
-                            })
-                          );
-                        } catch (sendError) {
-                          console.warn('Failed to send error to client:', sendError.message);
-                          this.players.delete(client);
-                        }
-                      }
-                    });
                   }
                 }
               }

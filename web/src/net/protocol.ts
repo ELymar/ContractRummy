@@ -65,6 +65,7 @@ export interface GameView {
   downPiles: DownPileView[];
   currentPlayerIndex: number;
   dealerIndex: number;
+  started: boolean;
   round: number;
   firstTurn: boolean;
   deckCount: number;
@@ -84,6 +85,12 @@ export interface RoundSummary {
   players: { name: string; rounds: (number | null)[]; total: number }[];
 }
 
+/** Structured score table in the ROUND_ENDED payload (GameEngine.getScoreboard). */
+export interface Scoreboard {
+  totalRounds: number;
+  players: { name: string; rounds: (number | null)[]; total: number }[];
+}
+
 export interface GameEvent {
   type: string;
   payload?: Record<string, unknown>;
@@ -97,13 +104,19 @@ export type ServerMessage =
   | { kind: 'events'; events: GameEvent[]; snapshot: { view: GameView } }
   | { kind: 'error'; message?: string };
 
-// Client -> server envelope. `command.type` is an ActionType; action arguments
-// ride in `payload` (the server's GameEngine.apply reads {type, playerId, payload}).
+// Client -> server envelopes. For 'command', `command.type` is an ActionType;
+// action arguments ride in `payload` (the server's GameEngine.apply reads
+// {type, playerId, payload}).
 //   DISCARD       -> payload: { cardUuid }
 //   ADD_TO_MELD   -> payload: { cardUuid, meldIndex, position }
 //   DRAW / TAKE_FROM_DISCARD / END_TURN -> no payload
+// 'next_round' advances past the score screen (server pauseAtRoundEnd mode).
 export interface Command {
   type: ActionType;
   playerId?: string;
   payload?: Record<string, unknown>;
 }
+
+export type ClientMessage =
+  | { kind: 'command'; command: Command }
+  | { kind: 'next_round' };

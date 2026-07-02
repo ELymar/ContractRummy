@@ -93,6 +93,7 @@ class GameEngine {
       })),
       currentPlayerIndex: s.currentPlayerIndex ?? 0,
       dealerIndex: s.dealerIndex ?? 0,
+      started: s.started ?? false,
       round: s.currentRound ?? 1,
       firstTurn: s.firstTurn ?? true,
       deckCount: s.deck?.length?.() ?? 0,
@@ -265,6 +266,20 @@ class GameEngine {
     return {cardIndex, card: player.hand.cards[cardIndex]};
   }
 
+  // Structured score table for clients: per-round scores (null = not played)
+  // plus running totals, one row per player.
+  getScoreboard() {
+    if (!this.scoreKeeper) return null;
+    return {
+      totalRounds: this.scoreKeeper.totalRounds,
+      players: this.scoreKeeper.playerNames.map((name) => ({
+        name,
+        rounds: [...this.scoreKeeper.scores[name]],
+        total: this.scoreKeeper.getTotalScore(name),
+      })),
+    };
+  }
+
   // Handle round end with scoring and progression
   handleRoundEnd(winnerPlayerId, reason = null) {
     const winner = this.findPlayer(winnerPlayerId);
@@ -295,6 +310,7 @@ class GameEngine {
         roundNumber: this.state.currentRound,
         scores: roundScores,
         scoreTable: this.scoreKeeper ? this.scoreKeeper.getScoreTable() : null,
+        scoreboard: this.getScoreboard(),
         gameComplete: this.scoreKeeper ? this.scoreKeeper.isGameComplete() : false,
       })
     );

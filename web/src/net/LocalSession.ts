@@ -81,6 +81,7 @@ export class LocalSession implements Session {
       downPiles: [], // melds appear here after laying down
       currentPlayerIndex: 0,
       dealerIndex: 0,
+      started: true,
       round: 1,
       firstTurn: false,
       deckCount: this.deck.length,

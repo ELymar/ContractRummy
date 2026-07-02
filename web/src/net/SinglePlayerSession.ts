@@ -102,20 +102,16 @@ export class SinglePlayerSession implements Session {
   }
 
   private buildSummary(payload: Record<string, unknown>, gameComplete: boolean): RoundSummary {
-    const sk = this.engine.scoreKeeper;
-    const players = sk
-      ? sk.playerNames.map((name) => ({
-          name,
-          rounds: [...sk.scores[name]],
-          total: sk.getTotalScore(name),
-        }))
-      : [];
+    const scoreboard = payload.scoreboard as
+      | { totalRounds: number; players: RoundSummary['players'] }
+      | null
+      | undefined;
     return {
       roundNumber: (payload.roundNumber as number) ?? this.engine.state.currentRound,
-      totalRounds: sk?.totalRounds ?? 7,
+      totalRounds: scoreboard?.totalRounds ?? 7,
       winnerName: (payload.winnerName as string) ?? 'Someone',
       gameComplete,
-      players,
+      players: scoreboard?.players ?? [],
     };
   }
 

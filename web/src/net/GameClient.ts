@@ -1,4 +1,7 @@
-import type { Command, GameEvent, GameView, ServerMessage } from './protocol';
+import type {
+  Command, GameEvent, GameView, RoundSummary, Scoreboard, ServerMessage,
+} from './protocol';
+import type { Session } from './Session';
 
 type ViewListener = (view: GameView) => void;
 type EventsListener = (events: GameEvent[]) => void;
@@ -13,7 +16,7 @@ export type ConnectionStatus = 'connecting' | 'open' | 'closed' | 'error';
  * envelopes, surface the latest per-player view, and send commands. It holds
  * NO game rules — the server is the source of truth.
  */
-export class GameClient {
+export class GameClient implements Session {
   private ws: WebSocket | null = null;
   private readonly url: string;
 
@@ -25,6 +28,7 @@ export class GameClient {
   private eventsListeners = new Set<EventsListener>();
   private statusListeners = new Set<StatusListener>();
   private errorListeners = new Set<(message: string) => void>();
+  private roundEndListeners = new Set<(summary: RoundSummary) => void>();
 
   constructor(url: string) {
     this.url = url;
@@ -62,6 +66,10 @@ export class GameClient {
           if (ev.type === 'ERROR') {
             const m = (ev.payload?.message as string) ?? 'Action rejected';
             this.errorListeners.forEach((fn) => fn(m));
+          }
+          if (ev.type === 'ROUND_ENDED') {
+            const summary = this.toRoundSummary(ev);
+            if (summary) this.roundEndListeners.forEach((fn) => fn(summary));
           }
         }
         this.eventsListeners.forEach((fn) => fn(msg.events ?? []));
@@ -104,6 +112,31 @@ export class GameClient {
   onError(fn: (message: string) => void): () => void {
     this.errorListeners.add(fn);
     return () => this.errorListeners.delete(fn);
+  }
+
+  onRoundEnd(fn: (summary: RoundSummary) => void): () => void {
+    this.roundEndListeners.add(fn);
+    return () => this.roundEndListeners.delete(fn);
+  }
+
+  /** Ask the server to deal the next round (any player may advance play). */
+  nextRound(): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    this.ws.send(JSON.stringify({ kind: 'next_round' }));
+  }
+
+  /** Map a ROUND_ENDED event (with the engine's scoreboard) to a RoundSummary. */
+  private toRoundSummary(ev: GameEvent): RoundSummary | null {
+    const p = ev.payload ?? {};
+    const scoreboard = p.scoreboard as Scoreboard | null | undefined;
+    if (!scoreboard) return null;
+    return {
+      roundNumber: (p.roundNumber as number) ?? this.view?.round ?? 1,
+      totalRounds: scoreboard.totalRounds,
+      winnerName: (p.winnerName as string) ?? 'Someone',
+      gameComplete: Boolean(p.gameComplete),
+      players: scoreboard.players,
+    };
   }
 
   private setStatus(status: ConnectionStatus): void {
