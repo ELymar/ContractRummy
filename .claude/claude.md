@@ -1,5 +1,24 @@
 # Contract Rummy - Claude Code Project Guide
 
+## Keep the architecture index current
+
+`docs/ARCHITECTURE.md` is the codebase index. Whenever a change alters the
+structure it describes, update it **in the same commit**. That means:
+- adding, removing, moving, or repurposing files/directories
+- adding or removing a player action, handler, event type, or Session method
+- changing the wire protocol (`server/src/server/GameServer.js` envelopes or
+  `web/src/net/protocol.ts`)
+- changing what `getViewFor` exposes, the test layout, or entry points/scripts
+
+Small edits inside an existing file (bug fixes, styling, copy) don't need an
+index update. If several sections have drifted, re-run the four-agent sweep
+(engine core / server infra / web client / tests + repo map) and re-synthesize
+rather than patching line by line.
+
+> ⚠️ **Staleness note:** everything below referring to Godot describes the
+> archived `ui/` prototype. The active front-end is the Phaser web client in
+> `web/` — see `docs/ARCHITECTURE.md` and TODO.md's Current Status.
+
 ## Project Overview
 
 Contract Rummy is a multiplayer card game built with:
