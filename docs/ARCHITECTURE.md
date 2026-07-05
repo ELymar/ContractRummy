@@ -15,7 +15,7 @@ engine, so rule behavior is identical everywhere.
 
 | Path        | Status     | What it is |
 | ----------- | ---------- | ---------- |
-| `server/`   | active     | Authoritative engine, action handlers, AI, scoring, WebSocket server, terminal clients, test suite (37 suites / 292 tests passing as of 2026-07). |
+| `server/`   | active     | Authoritative engine, action handlers, AI, scoring, WebSocket server, terminal clients, test suite (31 suites / 274 tests passing as of 2026-07). |
 | `web/`      | active     | Phaser 3 + TypeScript front-end (the current focus). Offline single-player vs. the AI by bundling the server engine into the browser; multiplayer via `GameClient`. |
 | `ui/`       | archived   | Godot 4.3 prototype, superseded by `web/` (2025-12 pivot). Kept for reference. |
 | `docs/`     | active     | This file + `game-state-schema.md` (original message-shape notes). |
@@ -249,7 +249,7 @@ only to enable the Lay Down button and pre-partition selected cards into the
 
 ## 4. Test infrastructure (`server/tests/`)
 
-37 suites / 292 tests (2026-07). No automated web-client tests yet — web
+31 suites / 274 tests (2026-07). No automated web-client tests yet — web
 changes are verified by driving the running app with Playwright against
 `window.__session`; rule correctness is shared with the server suite via the
 engine bundle.
@@ -257,7 +257,7 @@ engine bundle.
 | Directory | What it holds |
 | --- | --- |
 | `core/` (22 files) | Unit tests for domain objects, engine, rules, scoring, dealing. |
-| `unit/` (7) | Focused behavior tests: event privacy, discard-ends-actions, reshuffle events, round transitions. |
+| `unit/` (2) | Focused behavior tests: event privacy, discard-ends-actions. |
 | `integration/` (5) | Boot a real `GameServer` on a random port + `TestBotClient` WebSockets: single-round flow, command identity (anti-spoofing), round-end pause, ready broadcast, meld display. |
 | `regression/` (1) | Curated replays of recorded games (committed; the rest of recorded-games/ is git-ignored). |
 | `ai/` (1) | `handAnalysis` heuristics. |
