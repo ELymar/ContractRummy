@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { Session } from '../net/Session';
 import { ActionType } from '../net/protocol';
-import type { CardDTO, GameView, RoundSummary } from '../net/protocol';
+import type { CardDTO, GameEvent, GameView, RoundSummary } from '../net/protocol';
 import { SinglePlayerSession } from '../net/SinglePlayerSession';
 import { CARD_BACK_KEY, cardKey } from '../render/cardArt';
 import {
@@ -22,8 +22,11 @@ const VALUE_ORDER = [
   'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King',
 ];
 
+const FEED_LINES = 4;
+
 const LAYOUT = {
   info: { x: 40, y: 32, h: 36 },
+  feed: { x: 40, y: 96, lineH: 21 },
   turnChip: { x: 1170, y: 100, w: 152, h: 36 },
   opponents: { plateY: 66, cardsY: 128, scale: 0.5 },
   stock: { x: 560, y: 250 },
@@ -65,6 +68,8 @@ export class TableScene extends Phaser.Scene {
   private selected = new Set<string>(); // hand card uuids chosen for lay-down
   private modal: Phaser.GameObjects.Container | null = null;
   private modalSummary: RoundSummary | null = null;
+  private feed: string[] = []; // newest last; narrates recent table actions
+  private feedTexts: Phaser.GameObjects.Text[] = [];
   private buttons: ButtonRef[] = [];
   private meldZones: Phaser.GameObjects.Zone[] = [];
   private pendingDrop: { target: DropTarget; card: CardDTO } | null = null;
@@ -82,6 +87,8 @@ export class TableScene extends Phaser.Scene {
     this.modal = null;
     this.modalSummary = null;
     this.pendingDrop = null;
+    this.feed = [];
+    this.feedTexts = [];
 
     this.session = this.registry.get('session') as Session;
     if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__session = this.session;
@@ -105,6 +112,15 @@ export class TableScene extends Phaser.Scene {
       fontFamily: FONT, color: COLORS.creamFaint, fontSize: '15px', fontStyle: 'italic',
     }).setOrigin(0.5).setDepth(50);
 
+    // Action feed: narrates recent moves, newest on top, older lines fading.
+    for (let i = 0; i < FEED_LINES; i++) {
+      this.feedTexts.push(
+        this.add.text(LAYOUT.feed.x, LAYOUT.feed.y + i * LAYOUT.feed.lineH, '', {
+          fontFamily: FONT, color: COLORS.cream, fontSize: '14px',
+        }).setDepth(50).setAlpha(1 - i * 0.22),
+      );
+    }
+
     const chip = LAYOUT.turnChip;
     this.turnChipImg = this.add
       .image(chip.x, chip.y, buttonTexture(this, chip.w, chip.h, 'disabled'))
@@ -127,6 +143,8 @@ export class TableScene extends Phaser.Scene {
     if (unError) this.unsubs.push(unError);
     const unRound = this.session.onRoundEnd?.((summary) => this.showScoreModal(summary));
     if (unRound) this.unsubs.push(unRound);
+    const unEvents = this.session.onEvents?.((events) => this.narrate(events));
+    if (unEvents) this.unsubs.push(unEvents);
     this.events.once('shutdown', () => {
       this.unsubs.forEach((u) => u());
       this.unsubs = [];
@@ -283,6 +301,46 @@ export class TableScene extends Phaser.Scene {
       const current = view.players[view.currentPlayerIndex];
       this.turnChipImg.setTexture(buttonTexture(this, w, h, 'disabled'));
       this.turnChipText.setText(`${current?.name ?? '…'} PLAYING`).setColor(COLORS.creamFaint);
+    }
+  }
+
+  // ---- action feed -----------------------------------------------------------
+
+  /** Turn engine events into feed lines so fast AI turns stay readable. */
+  private narrate(events: GameEvent[]): void {
+    for (const ev of events) {
+      const line = this.describeEvent(ev);
+      if (!line) continue;
+      this.feed.unshift(line);
+    }
+    this.feed.length = Math.min(this.feed.length, FEED_LINES);
+    this.feedTexts.forEach((t, i) => t.setText(this.feed[i] ?? ''));
+  }
+
+  private describeEvent(ev: GameEvent): string | null {
+    const p = ev.payload ?? {};
+    const name = (pid: unknown): string => {
+      const v = this.session.view;
+      if (pid === v?.you?.id) return 'You';
+      return v?.players.find((pl) => pl.id === pid)?.name ?? 'Someone';
+    };
+    switch (ev.type) {
+      case 'CARD_DRAWN':
+        return p.source === 'discard'
+          ? `${name(p.playerId)} took ${(p.cardIds as string[] | undefined)?.[0] ?? 'a card'} from the discard`
+          : `${name(p.playerId)} drew from the stock`;
+      case 'CARD_DISCARDED':
+        return `${name(p.playerId)} discarded ${p.cardId ?? 'a card'}`;
+      case 'MELD_LAID':
+        return `${name(p.playerId)} laid down their contract`;
+      case 'MELD_EXTENDED':
+        return `${name(p.playerId)} added ${p.cardId ?? 'a card'} to a meld`;
+      case 'DECK_RESHUFFLED':
+        return 'Discard pile reshuffled into the stock';
+      case 'PLAYER_QUIT':
+        return `${name(p.playerId)} quit the game`;
+      default:
+        return null; // turn/round/game events are covered by chip, hint and modal
     }
   }
 

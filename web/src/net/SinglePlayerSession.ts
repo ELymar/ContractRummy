@@ -1,10 +1,10 @@
 import type { Session } from './Session';
-import type { Command, GameView, RoundSummary } from './protocol';
+import type { Command, GameEvent, GameView, RoundSummary } from './protocol';
 import { GameEngine, decideAction } from '../engine/bundle';
 import type { EngineEvent } from '../engine/bundle';
 
 const HUMAN_ID = 'human';
-const AI_STEP_MS = 700; // pace AI actions so the human can watch them play
+const AI_STEP_MS = 1000; // pace AI actions so the human can watch them play
 
 /**
  * Single-player session: runs the authoritative engine + AI entirely in the
@@ -25,6 +25,7 @@ export class SinglePlayerSession implements Session {
   private viewListeners = new Set<(v: GameView) => void>();
   private errorListeners = new Set<(m: string) => void>();
   private roundEndListeners = new Set<(s: RoundSummary) => void>();
+  private eventsListeners = new Set<(e: GameEvent[]) => void>();
 
   constructor(private opponents = 1) {}
 
@@ -65,6 +66,11 @@ export class SinglePlayerSession implements Session {
     return () => this.roundEndListeners.delete(fn);
   }
 
+  onEvents(fn: (events: GameEvent[]) => void): () => void {
+    this.eventsListeners.add(fn);
+    return () => this.eventsListeners.delete(fn);
+  }
+
   /** Resume play after the round-end pause (the score modal's button). */
   nextRound(): void {
     if (this.gameOver || !this.awaitingNextRound) return;
@@ -79,6 +85,7 @@ export class SinglePlayerSession implements Session {
   private applyFor(command: Command, playerId: string): void {
     const evts = this.engine.apply({ ...command, playerId } as Command & { playerId: string });
     this.processEvents(evts);
+    if (evts.length > 0) this.eventsListeners.forEach((fn) => fn(evts));
   }
 
   private processEvents(evts: EngineEvent[]): void {

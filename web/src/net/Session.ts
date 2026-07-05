@@ -1,4 +1,4 @@
-import type { Command, GameView, RoundSummary } from './protocol';
+import type { Command, GameEvent, GameView, RoundSummary } from './protocol';
 
 /**
  * The seam between the renderer and "whatever produces the next view".
@@ -23,6 +23,12 @@ export interface Session {
 
   /** Subscribe to rejected-action / error messages (optional; server only). */
   onError?(fn: (message: string) => void): () => void;
+
+  /**
+   * Subscribe to raw engine events (optional). The UI uses these to narrate
+   * what other players just did (drew, discarded, laid down…).
+   */
+  onEvents?(fn: (events: GameEvent[]) => void): () => void;
 
   /**
    * Subscribe to end-of-round score summaries (optional). When provided, the
