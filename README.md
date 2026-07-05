@@ -64,12 +64,6 @@ npm run ws-client
 
 Run this command twice to connect two players.
 
-### Option 3: Legacy Game
-The old single-file game (for reference):
-```bash
-npm run legacy-game
-```
-
 ## Running Tests
 
 ```bash
