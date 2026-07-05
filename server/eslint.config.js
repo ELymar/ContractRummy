@@ -50,7 +50,6 @@ module.exports = [
     ignores: [
       'node_modules/**',
       'tests/recorded-games/**',
-      'src/tests/recorded-games/**',
       'coverage/**',
     ],
   },

@@ -113,7 +113,7 @@ one `handle()` call.
 | Area | Files | Notes |
 | --- | --- | --- |
 | WebSocket server | `server/GameServer.js`, `server/index-ws.js` | Wraps one `GameEngine`. `index-ws.js` is the production entry (`WS_PORT`, default 8080) and enables `pauseAtRoundEnd`. |
-| Game logging | `server/GameLogger.js` | Winston; one JSON file per game under `src/tests/recorded-games/` with actions, events, and state snapshots — the raw material for replay tests. |
+| Game logging | `server/GameLogger.js` | Winston; one JSON file per game under `tests/recorded-games/` with actions, events, and state snapshots — the raw material for replay tests. |
 | Terminal (hot-seat) | `clients/terminal/TerminalGame.js`, `TerminalPlayerInterface.js` | Local pass-the-laptop game driving `GameState` directly (predates the engine). Entry: `main.js` (`npm start`). |
 | Terminal (network) | `clients/terminal/TerminalClient.js` | Interactive WS client (`npm run ws-client`). |
 | AI | `ai/decideAction.js`, `ai/handAnalysis.js` | Pure `(GameView) → Command`; shared by dev-bot, ai-sim, and the browser bundle. |

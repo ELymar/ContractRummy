@@ -19,7 +19,7 @@ class GameLogger {
   }
 
   setupLogger() {
-    const logDir = path.join(__dirname, '../tests/recorded-games');
+    const logDir = path.join(__dirname, '../../tests/recorded-games');
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, {recursive: true});
     }

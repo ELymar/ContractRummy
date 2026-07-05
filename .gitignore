@@ -7,14 +7,8 @@ server/recorded-games/
 server/generated/
 server/helpers/
 
-# New structure paths
-tests/recorded-games/
-tests/generated/
-helpers/
-
 # BUT DO commit curated regression tests
 !server/tests/regression/
-!tests/regression/
 
 # Log files
 *.log
