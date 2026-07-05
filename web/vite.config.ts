@@ -8,5 +8,6 @@ export default defineConfig({
   base: './',
   server: {
     port: 5173,
+    host: true, // listen on IPv4 + IPv6, not just ::1 (macOS resolves localhost oddly)
   },
 });
