@@ -10,7 +10,7 @@ front-end, a heuristic AI opponent, and a terminal client.
 | `server/` | Authoritative game engine, action handlers, AI (`decideAction`), scoring, terminal + WebSocket clients. 287 tests. |
 | `web/`    | **Active front-end** — Phaser 3 + TypeScript. Plays a full offline single-player game vs. the AI by bundling the server engine into the browser. See [`web/README.md`](web/README.md). |
 | `ui/`     | Earlier Godot 4.3 UI prototype — archived, superseded by `web/`.           |
-| `docs/`   | `game-state-schema.md` (client/server message shapes).                     |
+| `docs/`   | [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) (full codebase index) + `game-state-schema.md`. |
 
 ## Play in the browser (single-player vs. AI) — current focus
 
